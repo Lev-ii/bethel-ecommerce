@@ -1,0 +1,227 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* ------------------------------------------------------------ MODE JOUR */
+  :root {
+    --font-display: "Bricolage Grotesque", system-ui, sans-serif;
+    --font-body: "Poppins", system-ui, sans-serif;
+    --font-mono: "Space Grotesk", ui-monospace, monospace;
+    --font-serif: "Instrument Serif", Georgia, serif;
+
+    --bg: 255 255 255;
+    --bg-2: 245 244 240;
+    --bg-3: 235 233 227;
+
+    --fg: 22 21 15;
+    --fg-2: 70 68 60;
+    --fg-3: 108 105 94;
+
+    --line: 227 224 216;
+    --line-2: 207 203 192;
+
+    --brand: 255 237 67;
+    --brand-ink: 22 21 15;
+    
+    --brand-deep: 107 90 0;
+
+    --ok: 31 106 62;
+    --warn: 141 96 12;
+    --danger: 163 58 44;
+
+    --sidebar: 22 21 15;
+    --sidebar-fg: 244 243 237;
+
+    /* Fond de vignette : la surface sur laquelle repose le materiel. */
+    --gear-bg: 245 244 240;
+    --gear-grid: 227 224 216;
+    --gear-glow: 0.3;
+
+    /* Bande de temperature de couleur, signature de la boutique.
+       Le jaune de marque en est le point culminant. */
+    --kelvin: linear-gradient(
+      90deg,
+      #b4741a 0%,
+      #ffed43 34%,
+      #fdf8dc 62%,
+      #b9cbe4 100%
+    );
+  }
+
+  /* ------------------------------------------------------------ MODE NUIT */
+  .dark {
+    --bg: 14 14 12;
+    --bg-2: 22 22 19;
+    --bg-3: 32 31 27;
+
+    --fg: 244 243 237;
+    --fg-2: 181 178 168;
+    --fg-3: 137 134 124;
+
+    --line: 38 37 33;
+    --line-2: 55 53 47;
+
+    --brand: 255 237 67;
+    --brand-ink: 22 21 15;
+    /* Sur fond sombre, le jaune plein est parfaitement lisible en texte. */
+    --brand-deep: 255 237 67;
+
+    --ok: 111 203 140;
+    --warn: 226 180 74;
+    --danger: 240 138 124;
+
+    --sidebar: 22 22 19;
+    --sidebar-fg: 244 243 237;
+
+    /* Meme fond, calé sur les valeurs sombres. Le halo est adouci : a pleine
+       intensite, le jaune brule sur fond noir. */
+    --gear-bg: 32 31 27;
+    --gear-grid: 55 53 47;
+    --gear-glow: 0.16;
+
+    --kelvin: linear-gradient(
+      90deg,
+      #8a5510 0%,
+      #ffed43 34%,
+      #f3ecc9 62%,
+      #7d97bd 100%
+    );
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-bg text-fg font-sans antialiased;
+    font-size: 16px;
+    line-height: 1.6;
+    /* Evite un flash blanc pendant la bascule de theme. */
+    transition: background-color 200ms ease, color 200ms ease;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-display font-extrabold tracking-[-0.03em];
+    line-height: 1.05;
+  }
+
+  :focus-visible {
+    outline: 2px solid rgb(var(--brand));
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  ::selection {
+    background: rgb(var(--brand));
+    color: rgb(var(--brand-ink));
+  }
+}
+
+@layer components {
+  .shell {
+    @apply mx-auto w-full max-w-shell px-5 sm:px-6 lg:px-8;
+  }
+
+  .kelvin-bar {
+    background: var(--kelvin);
+  }
+
+  /**
+   * Fond de vignette : grille technique + halo jaune de marque.
+   *
+   * Entierement en CSS, donc une seule definition pour tout le site, aucune
+   * requete supplementaire, et la bascule jour / nuit est automatique.
+   * Il se place sous l'image du materiel, jamais dessus.
+   */
+  .gear-backdrop {
+    background-color: rgb(var(--gear-bg));
+    background-image:
+      linear-gradient(
+        180deg,
+        rgb(var(--brand) / var(--gear-glow)),
+        rgb(var(--brand) / 0)
+      ),
+      linear-gradient(to right, rgb(var(--gear-grid)) 1px, transparent 1px),
+      linear-gradient(to bottom, rgb(var(--gear-grid)) 1px, transparent 1px);
+    background-size: 100% 100%, 20px 20px, 20px 20px;
+  }
+
+  /* Grille resserree pour les vignettes de moins de 100 px. */
+  .gear-backdrop-sm {
+    background-size: 100% 100%, 10px 10px, 10px 10px;
+  }
+
+  /* Petites majuscules techniques : numerotation, labels, mentions.
+     Reprend le role de la classe "mono" du site studiobethel.com. */
+  .eyebrow {
+    @apply font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-fg-3;
+  }
+
+  /* Mot d'accent en serif italique, comme sur le site. */
+  .accent-italic {
+    @apply font-serif italic font-normal tracking-[-0.01em];
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-card px-5 py-3
+      text-sm font-semibold transition-colors duration-150
+      disabled:cursor-not-allowed disabled:opacity-50;
+    touch-action: manipulation;
+  }
+
+  /* Contraste inverse : noir sur clair en mode jour, clair sur noir la nuit. */
+  .btn-primary {
+    @apply btn bg-fg text-bg hover:bg-fg-2;
+  }
+
+  /* Le jaune de marque porte toujours un texte sombre, dans les deux themes. */
+  .btn-accent {
+    @apply btn bg-brand text-brand-ink hover:brightness-95;
+  }
+
+  .btn-outline {
+    @apply btn border border-line-2 bg-transparent text-fg hover:border-fg hover:bg-bg-2;
+  }
+
+  .btn-ghost {
+    @apply btn px-3 py-2 text-fg-2 hover:bg-bg-2 hover:text-fg;
+  }
+
+  .field-label {
+    @apply mb-1.5 block text-sm font-medium text-fg-2;
+  }
+
+  .field {
+    @apply w-full rounded-card border border-line bg-bg px-3.5 py-2.5 text-base
+      text-fg placeholder:text-fg-3
+      focus:border-fg focus:outline-none;
+  }
+
+  .tabular {
+    @apply font-mono;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .card {
+    @apply rounded-card border border-line bg-bg;
+  }
+
+  .spec-row {
+    @apply flex items-baseline justify-between gap-4 border-b border-line py-2.5 last:border-0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
