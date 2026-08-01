@@ -3,13 +3,13 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "Bethel — Materiel pour createurs de contenu",
+    default: "Bethel Store",
     template: "%s | Bethel",
   },
   description:
     "Trepieds, microphones, eclairage et accessoires pour createurs. Disponibles sur place, livres ou a retirer.",
   openGraph: {
-    title: "Bethel — Materiel pour createurs de contenu",
+    title: "Bethel Store",
     description:
       "Trepieds, microphones, eclairage et accessoires pour createurs. Disponibles sur place.",
     type: "website",
@@ -42,6 +42,24 @@ export default function RootLayout({
   return (
     <html lang="fr" suppressHydrationWarning>
       <head>
+        {/* Icones.
+
+            Les fichiers sont dans public/ et les balises sont ecrites ici a la
+            main, parce qu'ils viennent d'un generateur qui produit ses propres
+            noms. Ne pas remettre de icon.png, apple-icon.png ou favicon.ico
+            dans src/app/ : Next les servirait EN PLUS, et le navigateur
+            afficherait un melange des deux jeux. */}
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <link
+          rel="icon"
+          href="/favicon-96x96.png"
+          type="image/png"
+          sizes="96x96"
+        />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" />
+        <link rel="manifest" href="/site.webmanifest" />
+
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
           rel="preconnect"
