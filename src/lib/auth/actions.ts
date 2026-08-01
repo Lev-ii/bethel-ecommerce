@@ -13,11 +13,6 @@ import {
   createToken,
   homeFor,
 } from "@/lib/auth/session";
-import {
-  clearLoginAttempts,
-  isLoginBlocked,
-  recordFailedLogin,
-} from "@/lib/auth/security";
 import type { User } from "@/lib/types";
 
 /**
@@ -63,24 +58,19 @@ export async function signIn(formData: FormData) {
   const password = String(formData.get("password") ?? "");
   const suite = String(formData.get("suite") ?? "");
   const back = suite ? `&suite=${encodeURIComponent(suite)}` : "";
-  const ip = store.get("x-forwarded-for")?.value;
 
   if (!email || !password) {
     redirect(`/connexion?erreur=champs${back}`);
   }
 
-  if (isLoginBlocked(email, ip)) {
-    redirect(`/connexion?erreur=identifiants${back}`);
-  }
-
   const user = await getUserByEmail(email);
+  // Meme message dans les deux cas : distinguer les deux reviendrait a dire
+  // qui possede un compte chez nous.
   const ok = user ? await verifyPassword(password, user.passwordHash) : false;
   if (!user || !ok) {
-    recordFailedLogin(email, ip);
     redirect(`/connexion?erreur=identifiants${back}`);
   }
 
-  clearLoginAttempts(email, ip);
   await startSession(store, user);
   revalidatePath("/", "layout");
   redirect(suite || homeFor(user.role));
@@ -124,7 +114,18 @@ export async function signUp(formData: FormData) {
 
 export async function signOut() {
   const store = await cookies();
-  store.delete(SESSION_COOKIE);
+
+  // La suppression doit reprendre exactement les memes attributs que la pose,
+  // sinon le navigateur ne fait pas correspondre les deux cookies et garde
+  // l'ancien. En production, ou le cookie porte Secure, une suppression sans
+  // cet attribut echoue silencieusement : la redirection a lieu, mais la
+  // personne reste connectee.
+  //
+  // maxAge a zero plutot que delete() : l'expiration immediate est mieux
+  // supportee par les navigateurs anciens, et l'en-tete porte les memes
+  // attributs que la pose.
+  store.set(SESSION_COOKIE, "", { ...cookieOptions, maxAge: 0 });
+
   revalidatePath("/", "layout");
   redirect("/");
 }
