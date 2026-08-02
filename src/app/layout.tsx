@@ -3,13 +3,13 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "Bethel Store",
+    default: "BETHELSHOP",
     template: "%s | Bethel",
   },
   description:
     "Trepieds, microphones, eclairage et accessoires pour createurs. Disponibles sur place, livres ou a retirer.",
   openGraph: {
-    title: "Bethel Store",
+    title: "BETHELSHOP",
     description:
       "Trepieds, microphones, eclairage et accessoires pour createurs. Disponibles sur place.",
     type: "website",
