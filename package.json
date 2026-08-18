@@ -10,7 +10,8 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "db:setup": "node --env-file-if-exists=.env scripts/setup-db.mjs",
-    "test:concurrence": "node --env-file-if-exists=.env tests/concurrence.mjs"
+    "test:concurrence": "node --env-file-if-exists=.env tests/concurrence.mjs",
+    "admin:role": "node --env-file-if-exists=.env scripts/set-role.mjs"
   },
   "dependencies": {
     "@prisma/client": "^7.9.1",

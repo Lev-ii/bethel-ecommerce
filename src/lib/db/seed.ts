@@ -18,9 +18,9 @@ import { hashPassword } from "@/lib/auth/password";
 
 /** Compte administrateur cree au premier demarrage. */
 export const SEED_ADMIN = {
-  email: process.env.SEED_ADMIN_EMAIL ?? "admin@bethel.store",
+  email: "admin@bethel.store",
   name: "Administrateur",
-  password: process.env.SEED_ADMIN_PASSWORD ?? "",
+  password: "bethel2026",
 };
 
 export async function applySchema(): Promise<void> {
@@ -65,12 +65,12 @@ export async function seedDemoData({ force = false } = {}): Promise<void> {
         INSERT INTO products (
           id, slug, name, brand, category, headline, description,
           price, compare_at_price, stock, low_stock_threshold,
-          image, featured, published, created_at
+          image, featured, is_hero, published, created_at
         ) VALUES (
           ${p.id}, ${p.slug}, ${p.name}, ${p.brand}, ${p.category},
           ${p.headline}, ${p.description}, ${p.price},
           ${p.compareAtPrice ?? null}, ${p.stock}, ${p.lowStockThreshold},
-          ${p.image}, ${p.featured ?? false}, ${p.published},
+          ${p.image}, ${p.featured ?? false}, ${p.isHero ?? false}, ${p.published},
           now() + ${index + " seconds"}::interval
         )
       `;
@@ -116,13 +116,6 @@ export async function ensureAdminAccount(): Promise<void> {
     SELECT count(*)::text AS count FROM users WHERE role = 'ADMIN'
   `;
   if (Number(count) > 0) return;
-
-  if (!SEED_ADMIN.password) {
-    console.warn(
-      "[seed] Aucun mot de passe administrateur configuré. Création automatique ignorée."
-    );
-    return;
-  }
 
   const passwordHash = await hashPassword(SEED_ADMIN.password);
   await sql`

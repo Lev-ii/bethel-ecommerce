@@ -6,10 +6,10 @@ export default function NotFound() {
       <p className="eyebrow">Erreur 404</p>
       <h1 className="text-3xl">Cette page n&apos;existe pas</h1>
       <p className="max-w-sm text-fg-2">
-        Le lien est peut-etre ancien, ou le produit a ete retire du catalogue.
+        Le lien est peut-être ancien, ou le produit a été retiré du catalogue.
       </p>
       <Link href="/boutique" className="btn-primary mt-2">
-        Voir le materiel
+        Voir le matériel
       </Link>
     </div>
   );

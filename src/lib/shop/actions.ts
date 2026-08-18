@@ -53,19 +53,28 @@ export async function placeOrder(
   const orderId = randomUUID();
 
   try {
-    const total = await sql.begin(async (tx) => {
+    const { orderTotal: total, slugs } = await sql.begin(async (tx) => {
       const ids = input.items.map((i) => i.productId);
 
       const rows = await tx<
-        Array<{ id: string; name: string; price: number; stock: number }>
+        Array<{
+          id: string;
+          slug: string;
+          name: string;
+          price: number;
+          stock: number;
+        }>
       >`
-        SELECT id, name, price, stock FROM products
+        SELECT id, slug, name, price, stock FROM products
         WHERE id = ANY(${ids}) AND published = TRUE
         FOR UPDATE
       `;
 
       const byId = new Map(rows.map((r) => [r.id, r]));
       const lines = [];
+      // Les fiches produits sont pre-generees : il faudra les rafraichir,
+      // sinon celle du dernier exemplaire vendu continue d'afficher "En stock".
+      const slugs: string[] = [];
 
       for (const item of input.items) {
         const product = byId.get(item.productId);
@@ -77,6 +86,7 @@ export async function placeOrder(
             `Il ne reste que ${product.stock} exemplaire(s) de ${product.name}.`
           );
         }
+        slugs.push(product.slug);
         lines.push({
           productId: product.id,
           name: product.name,
@@ -115,10 +125,14 @@ export async function placeOrder(
         `;
       }
 
-      return orderTotal;
+      return { orderTotal, slugs };
     });
 
+    revalidatePath("/");
     revalidatePath("/boutique");
+    for (const slug of slugs) {
+      revalidatePath(`/boutique/${slug}`);
+    }
     revalidatePath("/admin");
     revalidatePath("/admin/commandes");
 

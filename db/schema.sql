@@ -27,6 +27,8 @@ CREATE TABLE IF NOT EXISTS products (
   low_stock_threshold   INTEGER NOT NULL DEFAULT 5 CHECK (low_stock_threshold >= 0),
   image                 TEXT NOT NULL,
   featured              BOOLEAN NOT NULL DEFAULT FALSE,
+  -- Produit occupant la fiche technique du hero. Un seul a la fois.
+  is_hero               BOOLEAN NOT NULL DEFAULT FALSE,
   published             BOOLEAN NOT NULL DEFAULT FALSE,
   created_at            TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at            TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -37,6 +39,12 @@ CREATE INDEX IF NOT EXISTS products_published_category_idx
   ON products (published, category);
 CREATE INDEX IF NOT EXISTS products_published_featured_idx
   ON products (published, featured);
+
+-- Un seul produit vedette. La contrainte est posee en base plutot que dans le
+-- code : meme une mise a jour manuelle depuis Supabase ne peut pas en creer
+-- deux. L'index partiel ne couvre que les lignes a TRUE.
+CREATE UNIQUE INDEX IF NOT EXISTS products_single_hero_idx
+  ON products (is_hero) WHERE is_hero;
 
 CREATE TABLE IF NOT EXISTS product_specs (
   id          BIGSERIAL PRIMARY KEY,
@@ -97,3 +105,6 @@ CREATE TABLE IF NOT EXISTS order_lines (
 );
 
 CREATE INDEX IF NOT EXISTS order_lines_order_idx ON order_lines (order_id);
+
+-- Rattrapage des bases creees avant l'ajout du produit vedette.
+ALTER TABLE products ADD COLUMN IF NOT EXISTS is_hero BOOLEAN NOT NULL DEFAULT FALSE;

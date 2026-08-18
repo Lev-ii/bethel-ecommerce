@@ -30,9 +30,9 @@ export default async function SuiviPage({
     <div className="shell py-10 lg:py-14">
       <header className="mb-8 max-w-xl">
         <Eyebrow>Suivi</Eyebrow>
-        <h1 className="mt-2 text-3xl sm:text-4xl">Ou en est ma commande ?</h1>
+        <h1 className="mt-2 text-3xl sm:text-4xl">Où en est ma commande ?</h1>
         <p className="mt-2 text-fg-2">
-          Entrez la reference recue a la validation, du type BTH-2607-1042.
+          Entrez la référence réçue a la validation, du type BTH-2607-1042.
         </p>
       </header>
 
@@ -44,7 +44,7 @@ export default async function SuiviPage({
       >
         <div className="flex-1">
           <label htmlFor="ref" className="sr-only">
-            Reference de commande
+            Référence de commande
           </label>
           <input
             id="ref"

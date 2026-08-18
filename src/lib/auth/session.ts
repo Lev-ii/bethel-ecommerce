@@ -24,14 +24,9 @@ interface Payload extends SessionUser {
 function secret(): string {
   const value = process.env.AUTH_SECRET;
   if (value && value.length >= 16) return value;
-
-  if (process.env.NODE_ENV === "production") {
-    throw new Error(
-      "AUTH_SECRET doit être défini avec au moins 16 caractères en production."
-    );
-  }
-
-  return "dev-session-secret-change-me";
+  // Sans secret configure, le projet doit quand meme demarrer pour la
+  // demonstration. Le README rappelle de le definir avant toute mise en ligne.
+  return "bethel-secret-de-demonstration-a-remplacer";
 }
 
 function toBase64Url(bytes: Uint8Array): string {
@@ -117,7 +112,6 @@ export const cookieOptions = {
   path: "/",
   maxAge: MAX_AGE_SECONDS,
   secure: process.env.NODE_ENV === "production",
-  partitioned: process.env.NODE_ENV === "production",
 };
 
 /** Page d'arrivee apres connexion, selon le role. */

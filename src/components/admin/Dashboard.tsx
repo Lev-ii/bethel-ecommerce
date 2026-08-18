@@ -8,11 +8,11 @@ export async function Dashboard() {
   const [products, orders] = await Promise.all([getAllProducts(), getOrders()]);
 
   const revenue = orders
-    .filter((o) => o.status !== "annulee")
+    .filter((o) => o.status !== "annulée")
     .reduce((sum, o) => sum + o.total, 0);
 
   const pending = orders.filter(
-    (o) => o.status === "recue" || o.status === "preparee"
+    (o) => o.status === "reçue" || o.status === "préparée"
   );
 
   const alerts = products.filter((p) => p.published && stockState(p) !== "in");
@@ -20,7 +20,7 @@ export async function Dashboard() {
   /* Produits les plus vendus, calcules a partir des lignes de commande. */
   const sold = new Map<string, { name: string; qty: number }>();
   for (const order of orders) {
-    if (order.status === "annulee") continue;
+    if (order.status === "annulée") continue;
     for (const line of order.lines) {
       const current = sold.get(line.productId) ?? { name: line.name, qty: 0 };
       current.qty += line.quantity;

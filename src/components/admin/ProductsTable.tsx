@@ -97,6 +97,11 @@ export async function ProductsTable({
                       </Link>
                       <p className="text-xs text-fg-3">
                         {p.brand} &middot; {categoryName(p.category)}
+                        {p.isHero ? (
+                          <span className="ml-2 rounded-card bg-brand/25 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wide text-brand-deep">
+                            Vedette
+                          </span>
+                        ) : null}
                       </p>
                     </div>
                   </div>

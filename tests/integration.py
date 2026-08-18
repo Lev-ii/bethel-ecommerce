@@ -10,7 +10,7 @@ import sys
 
 import requests
 
-BASE = "http://localhost:3700"
+BASE = "http://localhost:4400"
 
 ok_count = 0
 fail_count = 0
@@ -94,7 +94,7 @@ print("\n===== 2. Connexion administrateur =====")
 admin = requests.Session()
 page = admin.get(BASE + "/connexion").text
 fields = hidden_fields(page)
-fields.update({"email": "admin@example.com", "password": "mauvais-mot-de-passe"})
+fields.update({"email": "admin@bethel.store", "password": "mauvais-mot-de-passe"})
 r = post_form(admin, BASE + "/connexion", fields)
 check(
     "un mauvais mot de passe est refuse",
@@ -106,10 +106,16 @@ check(
     "bethel_session" not in admin.cookies,
 )
 
-check(
-    "l'administration ne peut pas être utilisée sans un compte admin configuré",
-    "admin@example.com" in r.text or "identifiants" in r.text.lower(),
-)
+page = admin.get(BASE + "/connexion").text
+fields = hidden_fields(page)
+fields.update({"email": "admin@bethel.store", "password": "bethel2026"})
+r = post_form(admin, BASE + "/connexion", fields)
+check("le bon mot de passe ouvre une session", "bethel_session" in admin.cookies)
+
+r = admin.get(BASE + "/admin")
+check("l'administration s'ouvre", r.status_code == 200 and "Tableau de bord" in r.text)
+r = admin.get(BASE + "/admin/produits")
+check("la liste du materiel s'ouvre", "Ajouter du materiel" in r.text)
 
 
 print("\n===== 3. Creation d'un compte client =====")
@@ -320,6 +326,39 @@ check(
 
 
 print("\n===== 8. Deconnexion =====")
+
+# Le cookie de suppression doit reprendre exactement les attributs de la pose.
+# Sans cela, le navigateur ne fait pas correspondre les deux et garde l'ancien :
+# la redirection a lieu, mais la personne reste connectee. Le bug ne se voit
+# qu'en production, ou le cookie porte Secure.
+poseur = requests.Session()
+fields = hidden_fields(poseur.get(BASE + "/connexion").text)
+fields.update({"email": "admin@bethel.store", "password": "bethel2026"})
+r = post_form(poseur, BASE + "/connexion", fields, allow_redirects=False)
+pose = r.headers.get("set-cookie", "")
+
+page = poseur.get(BASE + "/compte").text
+fields = hidden_fields(page)
+r = post_form(poseur, BASE + "/compte", fields, allow_redirects=False)
+suppression = r.headers.get("set-cookie", "")
+
+
+def attributs(entete):
+    return {a.strip().split("=")[0].lower() for a in entete.split(";")[1:]}
+
+
+manquants = attributs(pose) - attributs(suppression) - {"expires", "max-age"}
+check(
+    "la suppression du cookie reprend les attributs de la pose",
+    not manquants,
+    f"manquants : {sorted(manquants)}",
+)
+check(
+    "le cookie de suppression est vide",
+    "bethel_session=;" in suppression,
+    suppression[:60],
+)
+
 r = client.get(BASE + "/compte")
 check("le client est encore connecte", r.status_code == 200)
 client.cookies.clear()

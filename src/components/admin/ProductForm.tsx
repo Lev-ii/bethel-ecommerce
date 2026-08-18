@@ -284,7 +284,15 @@ export function ProductForm({
           id="featured"
           name="featured"
           label="Mettre en avant sur l'accueil"
+          hint="Apparait dans la selection en bas de la page d'accueil."
           defaultChecked={product?.featured ?? false}
+        />
+        <Checkbox
+          id="isHero"
+          name="isHero"
+          label="Produit vedette de l'accueil"
+          hint="Occupe la grande fiche technique en haut de page. Un seul produit a la fois : cocher ici le retire au precedent."
+          defaultChecked={product?.isHero ?? false}
         />
       </section>
 

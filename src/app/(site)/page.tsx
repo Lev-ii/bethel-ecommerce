@@ -7,29 +7,33 @@ import {
   KelvinBar,
   SectionHeading,
 } from "@/components/ui/Primitives";
-import { getCategories, getFeaturedProducts, getProducts } from "@/lib/repository";
+import {
+  getCategories,
+  getFeaturedProducts,
+  getHeroProduct,
+  getProducts,
+} from "@/lib/repository";
 import { GearImage } from "@/components/product/GearImage";
 
 // Teintes analogues au jaune de marque (#FFED43), reprises de la bande
 // "kelvin" du site : ambre profond -> or -> olive. Faible saturation,
 // utilisees a basse opacite pour ne pas rivaliser avec le produit.
 const CATEGORY_ACCENTS: Record<string, string> = {
-  trepieds: "180 116 26", // ambre profond (identique au kelvin-bar)
+  trépieds: "180 116 26", // ambre profond (identique au kelvin-bar)
   microphones: "201 138 58", // ambre chaud
-  eclairage: "217 181 74", // or, proche de la marque sans la dupliquer
+  éclairage: "217 181 74", // or, proche de la marque sans la dupliquer
   objectifs: "156 139 78", // olive dore
   accessoires: "143 122 69", // olive profond
 };
 const FALLBACK_ACCENT = "156 139 78";
 
 export default async function AccueilPage() {
-  const [featured, categories, all] = await Promise.all([
+  const [featured, categories, all, hero] = await Promise.all([
     getFeaturedProducts(4),
     getCategories(),
     getProducts(),
+    getHeroProduct(),
   ]);
-
-  const hero = featured[0];
   const promos = all.filter((p) => p.compareAtPrice).slice(0, 4);
 
   return (
@@ -38,17 +42,17 @@ export default async function AccueilPage() {
       <section className="border-b border-line bg-bg-2">
         <div className="shell grid items-center gap-10 py-14 lg:grid-cols-[1.05fr_0.95fr] lg:py-20">
           <div className="animate-rise-in">
-            <Eyebrow>Trepieds · Micros · Lumiere · Accessoires</Eyebrow>
+            <Eyebrow>Trépieds · Micros · Lumière · Accessoires</Eyebrow>
 
             <h1 className="mt-4 text-4xl sm:text-5xl lg:text-6xl">
-              Le materiel des createurs,
+              Le materiel des créateurs,
               <br />
               disponible ici<span className="text-brand">.</span>
             </h1>
 
             <p className="mt-5 max-w-lg text-lg text-fg-2">
-              Plus besoin de commander a l&apos;étranger et d&apos;attendre trois
-              semaines. Du materiel choisi pour tourner, enregistrer et eclairer,
+              Plus besoin de commander à l&apos;étranger et d&apos;attendre trois
+              semaines. Du materiel choisi pour tourner, enregistrer et éclairer,
               en stock et livre sur place.
             </p>
 
@@ -63,7 +67,7 @@ export default async function AccueilPage() {
 
             <div className="mt-9 flex flex-wrap gap-3">
               <Link href="/boutique" className="btn-primary">
-                Voir le materiel <ArrowRight size={16} aria-hidden />
+                Voir le matériel <ArrowRight size={16} aria-hidden />
               </Link>
               <Link href="/suivi" className="btn-outline">
                 Suivre une commande
@@ -129,7 +133,7 @@ export default async function AccueilPage() {
             {
               icon: ShieldCheck,
               title: "Paiement sécurisé",
-              text: "Mobile money ou carte. Aucune donnee bancaire conservee.",
+              text: "Mobile money ou carte. Aucune donnée bancaire conservée.",
             },
           ].map(({ icon: Icon, title, text }) => (
             <div key={title} className="flex gap-3">
@@ -195,7 +199,7 @@ export default async function AccueilPage() {
               href="/boutique"
               className="text-sm font-semibold underline underline-offset-4"
             >
-              Tout le materiel
+              Tout le matériel
             </Link>
           }
         />

@@ -164,11 +164,11 @@ export async function OrdersTable({ filter }: { filter?: string }) {
 
 function StatusPill({ status }: { status: OrderStatus }) {
   const tone =
-    status === "livree"
+    status === "livrée"
       ? "border-ok/30 bg-ok/5 text-ok"
-      : status === "annulee"
+      : status === "annulée"
         ? "border-danger/30 bg-danger/5 text-danger"
-        : status === "recue"
+        : status === "reçue"
           ? "border-brand bg-brand/20 text-brand-deep"
           : "border-line bg-bg text-fg-2";
 

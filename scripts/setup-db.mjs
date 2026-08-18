@@ -21,7 +21,15 @@ if (!url) {
 
 const force = process.argv.includes("--force");
 const local = url.includes("localhost") || url.includes("127.0.0.1");
-const sql = postgres(url, { ssl: local ? false : "require", prepare: false });
+const sql = postgres(url, {
+  ssl: local ? false : "require",
+  prepare: false,
+  // Le schema est idempotent : PostgreSQL signale chaque "existe deja, je
+  // passe" par un NOTICE. C'est le fonctionnement attendu, pas un probleme.
+  // Les afficher noierait le vrai resultat sous une douzaine de blocs.
+  // Tout ce qui est plus grave qu'un NOTICE remonte quand meme en exception.
+  onnotice: () => {},
+});
 
 const hash = (password) =>
   new Promise((resolve, reject) => {
@@ -102,12 +110,12 @@ try {
           INSERT INTO products (
             id, slug, name, brand, category, headline, description,
             price, compare_at_price, stock, low_stock_threshold,
-            image, featured, published, created_at
+            image, featured, is_hero, published, created_at
           ) VALUES (
             ${p.id}, ${p.slug}, ${p.name}, ${p.brand}, ${p.category},
             ${p.headline}, ${p.description}, ${p.price},
             ${p.compareAtPrice ?? null}, ${p.stock}, ${p.lowStockThreshold},
-            ${p.image}, ${p.featured ?? false}, ${p.published},
+            ${p.image}, ${p.featured ?? false}, ${p.isHero ?? false}, ${p.published},
             now() + ${i + " seconds"}::interval
           )
         `;
@@ -146,11 +154,47 @@ try {
   if (Number(admins) > 0) {
     console.log("     Un administrateur existe deja.");
   } else {
-    console.log("     Aucun administrateur n'a ete cree automatiquement.");
-    console.log("     Definissez un compte administrateur manuellement via les variables d'environnement.");
+    await sql`
+      INSERT INTO users (id, email, name, password_hash, role)
+      VALUES (${randomUUID()}, 'admin@bethel.store', 'Administrateur',
+              ${await hash("bethel2026")}, 'ADMIN')
+      ON CONFLICT (email) DO NOTHING
+    `;
+    console.log("     admin@bethel.store / bethel2026  — a changer !");
   }
 
-  console.log("\nBase prete.");
+  // Verification finale : plutot que de laisser deviner, on affiche l'etat
+  // reel de la base. Les colonnes ajoutees apres coup sont la source d'erreur
+  // la plus frequente — le code deploye les attend, la base ne les a pas.
+  const [etat] = await sql`
+    SELECT
+      (SELECT count(*)::int FROM categories) AS categories,
+      (SELECT count(*)::int FROM products) AS produits,
+      (SELECT count(*)::int FROM orders) AS commandes,
+      (SELECT count(*)::int FROM users) AS comptes,
+      EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'products' AND column_name = 'is_hero'
+      ) AS colonne_vedette
+  `;
+
+  console.log("\nEtat de la base");
+  console.log(`     categories : ${etat.categories}`);
+  console.log(`     produits   : ${etat.produits}`);
+  console.log(`     commandes  : ${etat.commandes}`);
+  console.log(`     comptes    : ${etat.comptes}`);
+  console.log(
+    `     produit vedette : ${etat.colonne_vedette ? "colonne presente" : "COLONNE MANQUANTE"}`
+  );
+
+  if (etat.colonne_vedette) {
+    console.log("\nBase prete.");
+  } else {
+    console.log(
+      "\n     La colonne is_hero manque. Le code qui l'attend plantera."
+    );
+    process.exitCode = 1;
+  }
 } catch (error) {
   console.error("\nEchec :", error.message);
   process.exitCode = 1;

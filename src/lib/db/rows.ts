@@ -24,6 +24,7 @@ export interface ProductRow {
   low_stock_threshold: number;
   image: string;
   featured: boolean;
+  is_hero: boolean;
   published: boolean;
   specs?: Array<{ label: string; value: string }> | null;
 }
@@ -43,6 +44,7 @@ export function toProduct(row: ProductRow): Product {
     lowStockThreshold: row.low_stock_threshold,
     image: row.image,
     featured: row.featured,
+    isHero: row.is_hero,
     published: row.published,
     // json_agg renvoie [null] quand la jointure ne trouve rien.
     specs: (row.specs ?? []).filter(Boolean) as Spec[],

@@ -27,7 +27,7 @@ export const orders: Order[] = [
       },
     ],
     total: 52000,
-    status: "recue",
+    status: "reçue",
     createdAt: "2026-07-28T09:12:00.000Z",
   },
   {
@@ -46,7 +46,7 @@ export const orders: Order[] = [
       },
     ],
     total: 45000,
-    status: "preparee",
+    status: "préparée",
     createdAt: "2026-07-27T16:40:00.000Z",
   },
   {
@@ -74,7 +74,7 @@ export const orders: Order[] = [
       },
     ],
     total: 380000,
-    status: "expediee",
+    status: "expédiée",
     createdAt: "2026-07-26T11:05:00.000Z",
   },
   {
@@ -101,7 +101,7 @@ export const orders: Order[] = [
       },
     ],
     total: 37000,
-    status: "livree",
+    status: "livrée",
     createdAt: "2026-07-24T08:20:00.000Z",
   },
   {
@@ -120,7 +120,7 @@ export const orders: Order[] = [
       },
     ],
     total: 68000,
-    status: "livree",
+    status: "livrée",
     createdAt: "2026-07-22T14:55:00.000Z",
   },
 ];

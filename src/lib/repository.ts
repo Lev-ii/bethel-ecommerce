@@ -15,7 +15,7 @@ import type { Category, CategorySlug, Order, Product, User } from "@/lib/types";
 const productColumns = sql`
   p.id, p.slug, p.name, p.brand, p.category, p.headline, p.description,
   p.price, p.compare_at_price, p.stock, p.low_stock_threshold,
-  p.image, p.featured, p.published,
+  p.image, p.featured, p.is_hero, p.published,
   COALESCE(
     (SELECT json_agg(json_build_object('label', s.label, 'value', s.value)
                      ORDER BY s.position, s.id)
@@ -75,6 +75,24 @@ export async function getProducts(query: ProductQuery = {}): Promise<Product[]> 
       }
   `;
   return rows.map(toProduct);
+}
+
+/**
+ * Produit occupant la fiche technique de l'accueil.
+ *
+ * L'administration en designe un explicitement. Si aucun ne l'est — ou si
+ * celui qui l'etait a ete retire du catalogue — on retombe sur le premier
+ * produit mis en avant, pour que l'accueil ne se retrouve jamais vide.
+ */
+export async function getHeroProduct(): Promise<Product | undefined> {
+  const rows = await sql<ProductRow[]>`
+    SELECT ${productColumns}
+    FROM products p
+    WHERE p.published = TRUE
+    ORDER BY p.is_hero DESC, p.featured DESC, p.created_at ASC
+    LIMIT 1
+  `;
+  return rows[0] ? toProduct(rows[0]) : undefined;
 }
 
 export async function getFeaturedProducts(limit = 4): Promise<Product[]> {

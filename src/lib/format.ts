@@ -50,19 +50,19 @@ export function stockLabel(product: Product): string {
 }
 
 export const orderStatusLabel: Record<OrderStatus, string> = {
-  recue: "Recue",
-  preparee: "Preparee",
-  expediee: "Expediee",
-  livree: "Livree",
-  annulee: "Annulee",
+  reçue: "Recue",
+  préparée: "Preparee",
+  expédiée: "Expediee",
+  livrée: "Livree",
+  annulée: "Annulee",
 };
 
 /** Ordre du parcours d'une commande, utilise par le suivi client. */
 export const orderStatusFlow: OrderStatus[] = [
-  "recue",
-  "preparee",
-  "expediee",
-  "livree",
+  "reçue",
+  "préparée",
+  "expédiée",
+  "livrée",
 ];
 
 export function discountPercent(product: Product): number | null {

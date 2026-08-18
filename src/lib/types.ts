@@ -4,8 +4,9 @@ export type CategorySlug =
   | "trepieds"
   | "microphones"
   | "eclairage"
+  | "accessoires"
   | "objectifs"
-  | "accessoires";
+  ;
 
 export interface Category {
   slug: CategorySlug;
@@ -40,17 +41,19 @@ export interface Product {
   /** Illustration SVG servie depuis /public/produits. */
   image: string;
   featured?: boolean;
+  /** Occupe la fiche technique du hero. Un seul produit a la fois. */
+  isHero?: boolean;
   published: boolean;
 }
 
 export type StockState = "in" | "low" | "out";
 
 export type OrderStatus =
-  | "recue"
-  | "preparee"
-  | "expediee"
-  | "livree"
-  | "annulee";
+  | "reçue"
+  | "préparée"
+  | "expédiée"
+  | "livrée"
+  | "annulée";
 
 export type PaymentMethod = "mobile-money" | "carte" | "especes-retrait";
 

@@ -83,6 +83,7 @@ interface ParsedFields {
   stock: number;
   lowStockThreshold: number;
   featured: boolean;
+  isHero: boolean;
   published: boolean;
   specs: Spec[];
 }
@@ -120,6 +121,7 @@ function parseFields(formData: FormData): ParsedFields {
     stock,
     lowStockThreshold: Number.isInteger(lowStockThreshold) ? lowStockThreshold : 5,
     featured: formData.get("featured") === "on",
+    isHero: formData.get("isHero") === "on",
     published: formData.get("published") === "on",
     specs: readSpecs(formData),
   };
@@ -180,14 +182,20 @@ export async function createProduct(formData: FormData) {
         INSERT INTO products (
           id, slug, name, brand, category, headline, description,
           price, compare_at_price, stock, low_stock_threshold,
-          image, featured, published
+          image, featured, is_hero, published
         ) VALUES (
           ${id}, ${slug}, ${fields.name}, ${fields.brand}, ${fields.category},
           ${fields.headline}, ${fields.description}, ${fields.price},
           ${fields.compareAtPrice}, ${fields.stock}, ${fields.lowStockThreshold},
-          ${image}, ${fields.featured}, ${fields.published}
+          ${image}, ${fields.featured}, ${fields.isHero}, ${fields.published}
         )
       `;
+      // Un seul produit vedette : on retire la designation aux autres.
+      // Fait dans la meme transaction que l'insertion, sinon l'index unique
+      // rejetterait l'ecriture.
+      if (fields.isHero) {
+        await tx`UPDATE products SET is_hero = FALSE WHERE id <> ${id}`;
+      }
       await writeSpecs(tx as unknown as typeof sql, id, fields.specs);
     });
   } catch (error) {
@@ -220,6 +228,12 @@ export async function updateProduct(formData: FormData) {
     slug = await uniqueSlug(slugify(fields.name), id);
 
     await sql.begin(async (tx) => {
+      // Retire la designation aux autres avant de la poser ici, sinon
+      // l'index unique refuserait d'avoir deux vedettes le temps de la
+      // transaction.
+      if (fields.isHero) {
+        await tx`UPDATE products SET is_hero = FALSE WHERE id <> ${id}`;
+      }
       await tx`
         UPDATE products SET
           slug = ${slug!}, name = ${fields.name}, brand = ${fields.brand},
@@ -228,7 +242,8 @@ export async function updateProduct(formData: FormData) {
           compare_at_price = ${fields.compareAtPrice}, stock = ${fields.stock},
           low_stock_threshold = ${fields.lowStockThreshold},
           image = ${uploaded ?? existing.image},
-          featured = ${fields.featured}, published = ${fields.published},
+          featured = ${fields.featured}, is_hero = ${fields.isHero},
+          published = ${fields.published},
           updated_at = now()
         WHERE id = ${id}
       `;
