@@ -312,7 +312,10 @@ export async function togglePublished(formData: FormData) {
 export async function setOrderStatus(formData: FormData) {
   await assertAdmin();
   const id = String(formData.get("id") ?? "");
-  const status = String(formData.get("status") ?? "") as OrderStatus;
+  const requestedStatus = String(formData.get("status") ?? "");
+  const validStatuses: OrderStatus[] = ["recue", "preparee", "expediee", "livree"];
+  if (!validStatuses.includes(requestedStatus as OrderStatus)) return;
+  const status = requestedStatus as OrderStatus;
 
   await sql`UPDATE orders SET status = ${status} WHERE id = ${id}`;
 

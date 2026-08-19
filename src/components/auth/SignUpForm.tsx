@@ -21,11 +21,11 @@ export function SignUpForm({ erreur }: { erreur?: string }) {
       <Field
         id="phone"
         name="phone"
-        label="Telephone"
+        label="Téléphone"
         type="tel"
         autoComplete="tel"
         placeholder="+225 00 00 00 00"
-        hint="Nous appelons ce numero pour confirmer vos commandes."
+        hint="Nous appelons ce numéro pour confirmer vos commandes."
       />
       <Field
         id="password"
@@ -34,11 +34,11 @@ export function SignUpForm({ erreur }: { erreur?: string }) {
         type="password"
         required
         autoComplete="new-password"
-        hint="8 caracteres minimum, avec au moins une lettre et un chiffre."
+        hint="8 caractères minimum, avec au moins une lettre et un chiffre."
       />
 
-      <SubmitButton pendingLabel="Creation..." className="btn-accent w-full">
-        Creer mon compte
+      <SubmitButton pendingLabel="Création..." className="btn-accent w-full">
+        Créer mon compte
       </SubmitButton>
 
       

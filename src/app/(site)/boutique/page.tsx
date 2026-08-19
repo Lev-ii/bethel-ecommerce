@@ -7,9 +7,9 @@ import { getCategory, getProducts } from "@/lib/repository";
 import type { CategorySlug } from "@/lib/types";
 
 export const metadata: Metadata = {
-  title: "Le materiel",
+  title: "Le matériel",
   description:
-    "Trepieds, microphones, eclairage et accessoires en stock chez Bethel.",
+    "Trépieds, microphones, éclairage et accessoires en stock chez Bethel.",
 };
 
 type SearchParams = Promise<{
@@ -42,12 +42,12 @@ export default async function BoutiquePage({
       <header className="mb-8">
         <Eyebrow>Catalogue</Eyebrow>
         <h1 className="mt-2 text-3xl sm:text-4xl">
-          {category ? category.name : "Tout le materiel"}
+          {category ? category.name : "Tout le matériel"}
         </h1>
         <p className="mt-2 max-w-xl text-fg-2">
           {category
             ? category.tagline
-            : "Ce qui est affiche est ce qui est en boutique. Le stock se met a jour a chaque vente."}
+            : "Ce qui est affiché est ce qui est en boutique. Le stock se met à jour à chaque vente."}
         </p>
       </header>
 
@@ -64,8 +64,8 @@ export default async function BoutiquePage({
       ) : (
         <EmptyState
           title="Aucun produit ne correspond"
-          description="Essayez un autre mot, une autre categorie, ou retirez le filtre de disponibilite."
-          actionLabel="Voir tout le materiel"
+          description="Essayez un autre mot, une autre catégorie, ou retirez le filtre de disponibilité."
+          actionLabel="Voir tout le matériel"
           actionHref="/boutique"
         />
       )}

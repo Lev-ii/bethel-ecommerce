@@ -17,6 +17,15 @@ export function Footer({ isAdmin = false }: { isAdmin?: boolean }) {
         </div>
 
         <div className="space-y-3">
+          <p className="eyebrow text-[#16150f]">Informations</p>
+          <ul className="space-y-2 text-sm">
+            <li><Link href="/cgv" className="text-[#46443c] hover:text-[#16150f]">CGV</Link></li>
+            <li><Link href="/mentions-legales" className="text-[#46443c] hover:text-[#16150f]">Mentions légales</Link></li>
+            <li><Link href="/confidentialite" className="text-[#46443c] hover:text-[#16150f]">Confidentialité</Link></li>
+          </ul>
+        </div>
+
+        <div className="space-y-3">
           <p className="eyebrow text-[#16150f]">Categories</p>
           <ul className="space-y-2 text-sm">
             {categories.map((c) => (

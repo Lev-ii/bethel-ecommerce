@@ -49,13 +49,17 @@ export interface Product {
 export type StockState = "in" | "low" | "out";
 
 export type OrderStatus =
-  | "reçue"
-  | "préparée"
-  | "expédiée"
-  | "livrée"
-  | "annulée";
+  | "recue"
+  | "preparee"
+  | "expediee"
+  | "livree"
+  | "annulee";
 
-export type PaymentMethod = "mobile-money" | "carte" | "especes-retrait";
+export type PaymentMethod =
+  | "mobile-money"
+  | "carte"
+  | "especes-retrait"
+  | "paiement-livraison";
 
 export interface OrderLine {
   productId: string;

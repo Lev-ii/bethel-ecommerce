@@ -11,7 +11,7 @@ import { useCartCount } from "@/store/cart";
 import { categories } from "@/lib/data/catalog";
 
 const links = [
-  { href: "/boutique", label: "Tout le materiel" },
+  { href: "/boutique", label: "Tout le matériel" },
   ...categories.map((c) => ({
     href: `/boutique?categorie=${c.slug}`,
     label: c.name.split(" ")[0],

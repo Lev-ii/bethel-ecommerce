@@ -30,8 +30,8 @@ export default async function ComptePage() {
         {orders.length === 0 ? (
           <EmptyState
             title="Aucune commande pour l'instant"
-            description="Vos commandes passees depuis ce compte apparaitront ici, avec leur suivi."
-            actionLabel="Voir le materiel"
+            description="Vos commandes passées depuis ce compte apparaîtront ici, avec leur suivi."
+            actionLabel="Voir le matériel"
             actionHref="/boutique"
           />
         ) : (

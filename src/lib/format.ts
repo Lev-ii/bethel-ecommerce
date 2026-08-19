@@ -44,25 +44,25 @@ export function stockState(product: Product): StockState {
 
 export function stockLabel(product: Product): string {
   const state = stockState(product);
-  if (state === "out") return "Epuise";
+  if (state === "out") return "Épuisé";
   if (state === "low") return `Plus que ${product.stock}`;
   return "En stock";
 }
 
 export const orderStatusLabel: Record<OrderStatus, string> = {
-  reçue: "Recue",
-  préparée: "Preparee",
-  expédiée: "Expediee",
-  livrée: "Livree",
-  annulée: "Annulee",
+  recue: "Reçue",
+  preparee: "Préparée",
+  expediee: "Expédiée",
+  livree: "Livrée",
+  annulee: "Annulée",
 };
 
 /** Ordre du parcours d'une commande, utilise par le suivi client. */
 export const orderStatusFlow: OrderStatus[] = [
-  "reçue",
-  "préparée",
-  "expédiée",
-  "livrée",
+  "recue",
+  "preparee",
+  "expediee",
+  "livree",
 ];
 
 export function discountPercent(product: Product): number | null {

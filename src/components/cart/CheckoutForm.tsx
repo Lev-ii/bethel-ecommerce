@@ -3,14 +3,13 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Link from "next/link";
-import { CreditCard, Loader2, Smartphone, Store } from "lucide-react";
+import { Banknote, CreditCard, Loader2, Smartphone, Store } from "lucide-react";
 import { EmptyState } from "@/components/ui/Primitives";
 import { buildOrderReference, formatPrice } from "@/lib/format";
+import { quoteShipping } from "@/lib/shop/shipping";
 import { useCart, useCartTotal } from "@/store/cart";
 import { placeOrder } from "@/lib/shop/actions";
 import type { PaymentMethod } from "@/lib/types";
-
-const DELIVERY_FEE = 2000;
 
 type Errors = Partial<Record<"name" | "phone" | "address" | "city", string>>;
 
@@ -46,15 +45,16 @@ export function CheckoutForm({
   if (items.length === 0) {
     return (
       <EmptyState
-        title="Il n'y a rien a commander"
-        description="Ajoutez du materiel a votre panier avant de passer commande."
-        actionLabel="Voir le materiel"
+        title="Il n'y a rien à commander"
+        description="Ajoutez du matériel à votre panier avant de passer commande."
+        actionLabel="Voir le matériel"
         actionHref="/boutique"
       />
     );
   }
 
-  const fee = mode === "livraison" ? DELIVERY_FEE : 0;
+  const shipping = quoteShipping(form.city);
+  const fee = mode === "livraison" ? shipping.fee : 0;
   const total = subtotal + fee;
 
   const set = (key: keyof typeof form) => (value: string) =>
@@ -66,11 +66,11 @@ export function CheckoutForm({
       next.name = "Indiquez votre nom complet.";
     }
     if (!/^[+\d][\d\s]{7,}$/.test(form.phone.trim())) {
-      next.phone = "Indiquez un numero joignable, avec l'indicatif.";
+      next.phone = "Indiquez un numéro joignable, avec l'indicatif.";
     }
     if (mode === "livraison") {
       if (form.address.trim().length < 5) {
-        next.address = "Precisez la rue et le quartier.";
+        next.address = "Précisez la rue et le quartier.";
       }
       if (form.city.trim().length < 2) {
         next.city = "Indiquez la ville de livraison.";
@@ -129,13 +129,13 @@ export function CheckoutForm({
               active={mode === "livraison"}
               onClick={() => setMode("livraison")}
               title="Livraison"
-              detail={`${formatPrice(DELIVERY_FEE)} · sous 48 h`}
+              detail={`${formatPrice(shipping.fee)} · ${shipping.label.split(" · ")[1]}`}
             />
             <ChoiceCard
               active={mode === "retrait"}
               onClick={() => setMode("retrait")}
               title="Retrait en boutique"
-              detail="Gratuit · des aujourd'hui"
+              detail="Gratuit · dès aujourd'hui"
               icon={<Store size={17} aria-hidden />}
             />
           </div>
@@ -143,7 +143,7 @@ export function CheckoutForm({
 
         {/* Coordonnees */}
         <section className="card p-5">
-          <h2 className="text-lg">Vos coordonnees</h2>
+          <h2 className="text-lg">Vos coordonnées</h2>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <Field
               id="nom"
@@ -162,7 +162,7 @@ export function CheckoutForm({
               error={errors.phone}
               autoComplete="tel"
               placeholder="+225 00 00 00 00"
-              hint="Nous appelons ce numero pour confirmer."
+              hint="Nous appelons ce numéro pour confirmer."
             />
             <div className="sm:col-span-2">
               <Field
@@ -186,7 +186,7 @@ export function CheckoutForm({
                     onChange={set("address")}
                     error={errors.address}
                     autoComplete="street-address"
-                    placeholder="Rue, quartier, point de repere"
+                    placeholder="Rue, quartier, point de repère"
                   />
                 </div>
                 <Field
@@ -197,6 +197,9 @@ export function CheckoutForm({
                   error={errors.city}
                   autoComplete="address-level2"
                 />
+                  <p className="sm:col-span-2 -mt-2 text-sm text-fg-3">
+                    {shipping.label}. Les frais sont calculés selon la ville indiquée.
+                  </p>
               </>
             ) : null}
           </div>
@@ -229,10 +232,20 @@ export function CheckoutForm({
                 icon={<Store size={17} aria-hidden />}
               />
             ) : null}
+            {mode === "livraison" ? (
+              <ChoiceCard
+                active={payment === "paiement-livraison"}
+                onClick={() => setPayment("paiement-livraison")}
+                title="Paiement à la livraison"
+                detail="Réglez à la réception"
+                icon={<Banknote size={17} aria-hidden />}
+              />
+            ) : null}
           </div>
           <p className="mt-4 text-sm text-fg-2">
-            Le paiement est traite par notre prestataire. Aucune donnee bancaire
-            n&apos;est enregistree sur ce site.
+            {payment === "paiement-livraison"
+              ? "Vous paierez directement au livreur. Aucun paiement en ligne n'est nécessaire."
+              : "Le paiement est simulé pour le moment. Aucune donnée bancaire n'est enregistrée sur ce site."}
           </p>
         </section>
       </div>
@@ -295,7 +308,7 @@ export function CheckoutForm({
               Validation...
             </>
           ) : (
-            "Valider et payer"
+            payment === "paiement-livraison" ? "Confirmer la commande" : "Valider et payer"
           )}
         </button>
 

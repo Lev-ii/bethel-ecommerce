@@ -8,11 +8,11 @@ export async function Dashboard() {
   const [products, orders] = await Promise.all([getAllProducts(), getOrders()]);
 
   const revenue = orders
-    .filter((o) => o.status !== "annulée")
+    .filter((o) => o.status !== "annulee")
     .reduce((sum, o) => sum + o.total, 0);
 
   const pending = orders.filter(
-    (o) => o.status === "reçue" || o.status === "préparée"
+    (o) => o.status === "recue" || o.status === "preparee"
   );
 
   const alerts = products.filter((p) => p.published && stockState(p) !== "in");
@@ -20,7 +20,7 @@ export async function Dashboard() {
   /* Produits les plus vendus, calcules a partir des lignes de commande. */
   const sold = new Map<string, { name: string; qty: number }>();
   for (const order of orders) {
-    if (order.status === "annulée") continue;
+    if (order.status === "annulee") continue;
     for (const line of order.lines) {
       const current = sold.get(line.productId) ?? { name: line.name, qty: 0 };
       current.qty += line.quantity;
@@ -71,7 +71,7 @@ export async function Dashboard() {
                     p.stock === 0 ? "text-danger" : "text-warn"
                   }`}
                 >
-                  {p.stock === 0 ? "Epuise" : `${p.stock} restants`}
+                  {p.stock === 0 ? "Épuisé" : `${p.stock} restants`}
                 </span>
               </li>
             ))}
@@ -81,7 +81,7 @@ export async function Dashboard() {
               href="/admin/produits"
               className="inline-flex items-center gap-1.5 text-sm font-semibold"
             >
-              Gerer les stocks <ArrowRight size={14} aria-hidden />
+              Gérer les stocks <ArrowRight size={14} aria-hidden />
             </Link>
           </div>
         </section>

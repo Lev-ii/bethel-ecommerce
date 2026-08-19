@@ -5,6 +5,8 @@ import { revalidatePath } from "next/cache";
 import { currentUser } from "@/lib/auth/current";
 import { sql } from "@/lib/db/client";
 import { buildOrderReference } from "@/lib/format";
+import { emailProvider } from "@/lib/shop/email";
+import { paymentProvider } from "@/lib/shop/payment";
 import type { PaymentMethod } from "@/lib/types";
 
 export interface PlaceOrderInput {
@@ -101,15 +103,25 @@ export async function placeOrder(
       );
       const orderTotal = subtotal + input.deliveryFee;
 
+      const payment = await paymentProvider.charge({
+        amount: orderTotal,
+        method: input.paymentMethod,
+        reference,
+        customerEmail: input.customerEmail || user?.email,
+      });
+
       await tx`
         INSERT INTO orders (
           id, reference, user_id, customer_name, customer_phone, customer_email,
-          delivery_mode, address, city, payment_method, total, status
+          delivery_mode, address, city, payment_method, payment_ref, paid_at,
+          total, status
         ) VALUES (
           ${orderId}, ${reference}, ${user?.id ?? null}, ${input.customerName},
           ${input.customerPhone}, ${input.customerEmail || user?.email || null},
           ${input.deliveryMode}, ${input.address ?? null}, ${input.city ?? null},
-          ${input.paymentMethod}, ${orderTotal}, 'recue'
+          ${input.paymentMethod}, ${payment.transactionReference ?? null},
+          ${payment.status === "paid" ? sql`now()` : sql`NULL`},
+          ${orderTotal}, 'recue'
         )
       `;
 
@@ -132,6 +144,14 @@ export async function placeOrder(
     revalidatePath("/boutique");
     for (const slug of slugs) {
       revalidatePath(`/boutique/${slug}`);
+    }
+    if (input.customerEmail || user?.email) {
+      await emailProvider.sendOrderConfirmation({
+        to: input.customerEmail || user!.email,
+        subject: `Confirmation de commande ${reference}`,
+        reference,
+        total,
+      });
     }
     revalidatePath("/admin");
     revalidatePath("/admin/commandes");

@@ -12,7 +12,7 @@ import { getOrderByReference } from "@/lib/repository";
 
 export const metadata: Metadata = {
   title: "Suivre ma commande",
-  description: "Retrouvez l'etat de votre commande avec sa reference.",
+  description: "Retrouvez l'état de votre commande avec sa référence.",
 };
 
 type SearchParams = Promise<{ ref?: string }>;
@@ -32,7 +32,7 @@ export default async function SuiviPage({
         <Eyebrow>Suivi</Eyebrow>
         <h1 className="mt-2 text-3xl sm:text-4xl">Où en est ma commande ?</h1>
         <p className="mt-2 text-fg-2">
-          Entrez la référence réçue a la validation, du type BTH-2607-1042.
+          Entrez la référence reçue à la validation, du type BTH-2607-1042.
         </p>
       </header>
 
@@ -61,13 +61,13 @@ export default async function SuiviPage({
 
       {reference && !order ? (
         <div className="card mt-8 max-w-xl p-6">
-          <h2 className="text-lg">Aucune commande sous cette reference</h2>
+          <h2 className="text-lg">Aucune commande sous cette référence</h2>
           <p className="mt-2 text-sm text-fg-2">
-            Verifiez la reference, elle commence par BTH. Si le probleme
+            Vérifiez la référence, elle commence par BTH. Si le problème
             persiste, appelez la boutique au +225 07 78 84 84 74.
           </p>
           <p className="mt-3 text-sm text-fg-3">
-            Pour tester la demonstration, essayez{" "}
+            Pour tester la démonstration, essayez{" "}
             <Link
               href="/suivi?ref=BTH-2607-1042"
               className="tabular underline underline-offset-4"
@@ -83,11 +83,11 @@ export default async function SuiviPage({
         <div className="card mt-8 max-w-2xl p-6">
           <div className="flex flex-wrap items-baseline justify-between gap-3">
             <div>
-              <p className="eyebrow">Reference</p>
+              <p className="eyebrow">Référence</p>
               <p className="tabular text-lg font-semibold">{order.reference}</p>
             </div>
             <p className="text-sm text-fg-2">
-              Passee le {formatDate(order.createdAt)}
+              Passée le {formatDate(order.createdAt)}
             </p>
           </div>
 

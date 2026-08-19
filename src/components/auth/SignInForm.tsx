@@ -1,6 +1,7 @@
 import { signIn } from "@/lib/auth/actions";
 import { authErrorMessage } from "@/lib/auth/messages";
 import { Field, FormError, SubmitButton } from "@/components/ui/Form";
+import Link from "next/link";
 
 export function SignInForm({
   suite,
@@ -33,6 +34,10 @@ export function SignInForm({
         required
         autoComplete="current-password"
       />
+
+      <Link href="/mot-de-passe-oublie" className="block text-sm underline underline-offset-4">
+        Mot de passe oublie ?
+      </Link>
 
       <SubmitButton pendingLabel="Connexion..." className="btn-accent w-full">
         Se connecter

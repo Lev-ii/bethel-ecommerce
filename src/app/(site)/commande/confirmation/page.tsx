@@ -24,8 +24,8 @@ async function Recap({ searchParams }: { searchParams: SearchParams }) {
           aria-hidden
           className="mx-auto text-ok"
         />
-        <Eyebrow>Etape 3 sur 3</Eyebrow>
-        <h1 className="mt-2 text-2xl sm:text-3xl">Commande enregistree</h1>
+        <Eyebrow>Étape 3 sur 3</Eyebrow>
+        <h1 className="mt-2 text-2xl sm:text-3xl">Commande enregistrée</h1>
         <p className="mt-3 text-fg-2">
           Nous vous appelons dans l&apos;heure pour confirmer
           {retrait ? " l'heure de retrait." : " l'adresse de livraison."}
@@ -33,7 +33,7 @@ async function Recap({ searchParams }: { searchParams: SearchParams }) {
 
         <dl className="mt-7 text-left">
           <div className="spec-row">
-            <dt className="text-sm text-fg-2">Reference</dt>
+            <dt className="text-sm text-fg-2">Référence</dt>
             <dd className="tabular text-sm font-semibold">{reference}</dd>
           </div>
           <div className="spec-row">
@@ -43,7 +43,7 @@ async function Recap({ searchParams }: { searchParams: SearchParams }) {
             </dd>
           </div>
           <div className="spec-row">
-            <dt className="text-sm text-fg-2">Reception</dt>
+            <dt className="text-sm text-fg-2">Réception</dt>
             <dd className="text-sm font-semibold">
               {retrait ? "Retrait en boutique" : "Livraison sous 48 h"}
             </dd>
@@ -51,13 +51,16 @@ async function Recap({ searchParams }: { searchParams: SearchParams }) {
         </dl>
 
         <p className="mt-5 text-sm text-fg-3">
-          Gardez cette reference : elle permet de suivre la commande.
+          Gardez cette référence : elle permet de suivre la commande.
         </p>
 
         <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:justify-center">
           <Link href={`/suivi?ref=${reference}`} className="btn-primary">
             Suivre ma commande
           </Link>
+          <a href={`/api/commande/${reference}/facture`} className="btn-outline">
+            Télécharger la facture PDF
+          </a>
           <Link href="/boutique" className="btn-outline">
             Continuer mes achats
           </Link>

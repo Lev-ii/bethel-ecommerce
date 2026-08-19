@@ -12,7 +12,8 @@ import type { OrderStatus } from "@/lib/types";
 const paymentLabel: Record<string, string> = {
   "mobile-money": "Mobile money",
   carte: "Carte bancaire",
-  "especes-retrait": "Especes au retrait",
+  "especes-retrait": "Espèces au retrait",
+  "paiement-livraison": "Paiement à la livraison",
 };
 
 export async function OrdersTable({ filter }: { filter?: string }) {
@@ -32,7 +33,7 @@ export async function OrdersTable({ filter }: { filter?: string }) {
         <h1 className="mt-2 text-3xl">Commandes</h1>
       </header>
 
-      <nav className="flex flex-wrap gap-2" aria-label="Filtrer par etat">
+      <nav className="flex flex-wrap gap-2" aria-label="Filtrer par état">
         {filters.map((f) => (
           <a
             key={f.value}
@@ -80,7 +81,7 @@ export async function OrdersTable({ filter }: { filter?: string }) {
                   <h3 className="text-sm font-semibold">Client</h3>
                   <dl className="mt-2 space-y-1 text-sm text-fg-2">
                     <div className="flex gap-2">
-                      <dt className="text-fg-3">Telephone</dt>
+                        <dt className="text-fg-3">Téléphone</dt>
                       <dd className="tabular">{o.customerPhone}</dd>
                     </div>
                     {o.customerEmail ? (
@@ -104,7 +105,7 @@ export async function OrdersTable({ filter }: { filter?: string }) {
                     </div>
                     <div className="flex gap-2">
                       <dt className="text-fg-3">Compte</dt>
-                      <dd>{o.userId ? "Client connecte" : "Commande sans compte"}</dd>
+                      <dd>{o.userId ? "Client connecté" : "Commande sans compte"}</dd>
                     </div>
                   </dl>
                 </div>
@@ -154,7 +155,7 @@ export async function OrdersTable({ filter }: { filter?: string }) {
 
         {orders.length === 0 ? (
           <p className="px-4 py-10 text-center text-sm text-fg-2">
-            Aucune commande dans cet etat.
+            Aucune commande dans cet état.
           </p>
         ) : null}
       </div>
@@ -164,11 +165,11 @@ export async function OrdersTable({ filter }: { filter?: string }) {
 
 function StatusPill({ status }: { status: OrderStatus }) {
   const tone =
-    status === "livrée"
+    status === "livree"
       ? "border-ok/30 bg-ok/5 text-ok"
-      : status === "annulée"
+      : status === "annulee"
         ? "border-danger/30 bg-danger/5 text-danger"
-        : status === "reçue"
+        : status === "recue"
           ? "border-brand bg-brand/20 text-brand-deep"
           : "border-line bg-bg text-fg-2";
 

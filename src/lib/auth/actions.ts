@@ -3,7 +3,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { randomUUID } from "node:crypto";
+import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { sql } from "@/lib/db/client";
 import { getUserByEmail } from "@/lib/repository";
 import { hashPassword, passwordProblem, verifyPassword } from "@/lib/auth/password";
@@ -14,6 +14,10 @@ import {
   homeFor,
 } from "@/lib/auth/session";
 import type { User } from "@/lib/types";
+
+function hashResetToken(token: string): string {
+  return createHash("sha256").update(token).digest("hex");
+}
 
 /**
  * Actions d'authentification.
@@ -128,4 +132,50 @@ export async function signOut() {
 
   revalidatePath("/", "layout");
   redirect("/");
+}
+
+export async function requestPasswordReset(formData: FormData) {
+  const email = normalizeEmail(formData.get("email"));
+  if (!email) redirect("/mot-de-passe-oublie?erreur=email");
+
+  const user = await getUserByEmail(email);
+  if (user) {
+    const token = randomBytes(32).toString("hex");
+    await sql`
+      DELETE FROM password_reset_tokens WHERE user_id = ${user.id} OR expires_at < now()
+    `;
+    await sql`
+      INSERT INTO password_reset_tokens (user_id, token_hash, expires_at)
+      VALUES (${user.id}, ${hashResetToken(token)}, now() + interval '30 minutes')
+    `;
+    console.info(`[auth] lien de reinitialisation genere pour ${email}: /mot-de-passe-oublie/${token}`);
+  }
+
+  redirect("/mot-de-passe-oublie?envoye=1");
+}
+
+export async function resetPassword(formData: FormData) {
+  const token = String(formData.get("token") ?? "");
+  const password = String(formData.get("password") ?? "");
+  if (!token || passwordProblem(password)) {
+    redirect(`/mot-de-passe-oublie/${encodeURIComponent(token)}?erreur=motdepasse`);
+  }
+
+  const passwordHash = await hashPassword(password);
+  const rows = await sql`
+    UPDATE users u
+    SET password_hash = ${passwordHash}
+    FROM password_reset_tokens t
+    WHERE t.user_id = u.id
+      AND t.token_hash = ${hashResetToken(token)}
+      AND t.expires_at > now()
+      AND t.used_at IS NULL
+    RETURNING u.id
+  `;
+  if (rows.length === 0) redirect("/mot-de-passe-oublie?erreur=invalide");
+  await sql`
+    UPDATE password_reset_tokens SET used_at = now()
+    WHERE token_hash = ${hashResetToken(token)}
+  `;
+  redirect("/connexion?reset=1");
 }
