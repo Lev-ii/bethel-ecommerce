@@ -71,15 +71,17 @@ export function AddToCart({ product }: { product: Product }) {
         <button
           type="button"
           onClick={handleAdd}
-          className="btn-accent h-12 flex-1"
+          className="btn-accent h-12 min-w-0 flex-1"
         >
           {added ? (
             <>
-              <Check size={17} aria-hidden /> Ajoute au panier
+              <Check size={17} aria-hidden className="shrink-0" />{" "}
+              <span className="min-w-0 truncate">Ajoute au panier</span>
             </>
           ) : (
             <>
-              <ShoppingBag size={17} aria-hidden /> Ajouter au panier
+              <ShoppingBag size={17} aria-hidden className="shrink-0" />{" "}
+              <span className="min-w-0 truncate">Ajouter au panier</span>
             </>
           )}
         </button>

@@ -49,7 +49,7 @@ export function CartView() {
             </Link>
 
             <div className="flex min-w-0 flex-1 flex-col gap-2">
-              <div className="flex items-start justify-between gap-3">
+              <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="eyebrow">{item.brand}</p>
                   <Link
@@ -64,7 +64,7 @@ export function CartView() {
                 </p>
               </div>
 
-              <div className="mt-auto flex items-center justify-between gap-3">
+              <div className="mt-auto flex flex-wrap items-center justify-between gap-3">
                 <div
                   className="flex items-center rounded-card border border-line"
                   role="group"
@@ -96,8 +96,10 @@ export function CartView() {
                   type="button"
                   onClick={() => remove(item.productId)}
                   className="inline-flex items-center gap-1.5 text-sm text-fg-3 hover:text-danger"
+                  aria-label={`Retirer ${item.name}`}
                 >
-                  <Trash2 size={15} aria-hidden /> Retirer
+                  <Trash2 size={15} aria-hidden />
+                  <span className="hidden sm:inline">Retirer</span>
                 </button>
               </div>
             </div>
