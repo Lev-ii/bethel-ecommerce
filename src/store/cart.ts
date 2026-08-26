@@ -18,12 +18,15 @@ export interface CartItem {
 
 interface CartState {
   items: CartItem[];
+  lastAdded: CartItem | null;
+  drawerOpen: boolean;
   /** Passe a true apres rehydratation, pour eviter tout ecart serveur/client. */
   ready: boolean;
   add: (product: Product, quantity?: number) => void;
   setQuantity: (productId: string, quantity: number) => void;
   remove: (productId: string) => void;
   clear: () => void;
+  closeDrawer: () => void;
   markReady: () => void;
 }
 
@@ -31,37 +34,45 @@ export const useCart = create<CartState>()(
   persist(
     (set) => ({
       items: [],
+      lastAdded: null,
+      drawerOpen: false,
       ready: false,
 
       add: (product, quantity = 1) =>
         set((state) => {
           const existing = state.items.find((i) => i.productId === product.id);
           if (existing) {
+            const updatedItems = state.items.map((i) =>
+              i.productId === product.id
+                ? {
+                    ...i,
+                    quantity: Math.min(i.quantity + quantity, i.maxQuantity),
+                  }
+                : i
+            );
             return {
-              items: state.items.map((i) =>
-                i.productId === product.id
-                  ? {
-                      ...i,
-                      quantity: Math.min(i.quantity + quantity, i.maxQuantity),
-                    }
-                  : i
-              ),
+              items: updatedItems,
+              lastAdded: updatedItems.find((i) => i.productId === product.id) ?? null,
+              drawerOpen: true,
             };
           }
+          const item = {
+            productId: product.id,
+            slug: product.slug,
+            name: product.name,
+            brand: product.brand,
+            image: product.image,
+            unitPrice: product.price,
+            quantity: Math.min(quantity, product.stock),
+            maxQuantity: product.stock,
+          };
           return {
             items: [
               ...state.items,
-              {
-                productId: product.id,
-                slug: product.slug,
-                name: product.name,
-                brand: product.brand,
-                image: product.image,
-                unitPrice: product.price,
-                quantity: Math.min(quantity, product.stock),
-                maxQuantity: product.stock,
-              },
+              item,
             ],
+            lastAdded: item,
+            drawerOpen: true,
           };
         }),
 
@@ -81,7 +92,9 @@ export const useCart = create<CartState>()(
           items: state.items.filter((i) => i.productId !== productId),
         })),
 
-      clear: () => set({ items: [] }),
+      clear: () => set({ items: [], lastAdded: null, drawerOpen: false }),
+
+      closeDrawer: () => set({ drawerOpen: false }),
 
       markReady: () => set({ ready: true }),
     }),

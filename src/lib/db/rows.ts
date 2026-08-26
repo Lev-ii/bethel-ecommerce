@@ -23,6 +23,7 @@ export interface ProductRow {
   stock: number;
   low_stock_threshold: number;
   image: string;
+  images?: string[] | null;
   featured: boolean;
   is_hero: boolean;
   published: boolean;
@@ -43,6 +44,7 @@ export function toProduct(row: ProductRow): Product {
     stock: row.stock,
     lowStockThreshold: row.low_stock_threshold,
     image: row.image,
+    images: row.images ?? undefined,
     featured: row.featured,
     isHero: row.is_hero,
     published: row.published,

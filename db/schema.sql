@@ -57,6 +57,17 @@ CREATE TABLE IF NOT EXISTS product_specs (
 CREATE INDEX IF NOT EXISTS product_specs_product_idx
   ON product_specs (product_id, position);
 
+CREATE TABLE IF NOT EXISTS product_images (
+  id         BIGSERIAL PRIMARY KEY,
+  product_id TEXT NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+  url        TEXT NOT NULL,
+  position   INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS product_images_product_idx
+  ON product_images (product_id, position, id);
+
 CREATE TABLE IF NOT EXISTS users (
   id             TEXT PRIMARY KEY,
   email          TEXT NOT NULL UNIQUE,

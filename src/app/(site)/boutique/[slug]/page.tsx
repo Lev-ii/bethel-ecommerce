@@ -3,8 +3,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronRight, RotateCcw, Truck } from "lucide-react";
 import { AddToCart } from "@/components/product/AddToCart";
-import { GearImage } from "@/components/product/GearImage";
+import { ProductGallery } from "@/components/product/ProductGallery";
 import { ProductCard } from "@/components/product/ProductCard";
+import { ReviewStars } from "@/components/product/ReviewStars";
 import { Eyebrow, Price, StockBadge } from "@/components/ui/Primitives";
 import {
   getCategory,
@@ -12,6 +13,7 @@ import {
   getProducts,
   getRelatedProducts,
 } from "@/lib/repository";
+import { getProductReviews } from "@/lib/data/reviews";
 
 type Params = Promise<{ slug: string }>;
 
@@ -43,6 +45,8 @@ export default async function ProduitPage({ params }: { params: Params }) {
     getCategory(product.category),
     getRelatedProducts(product),
   ]);
+  const productReviews = getProductReviews(product.slug);
+  const galleryImages = product.images?.length ? product.images : [product.image];
 
   return (
     <div className="shell py-8 lg:py-12">
@@ -70,21 +74,13 @@ export default async function ProduitPage({ params }: { params: Params }) {
       </nav>
 
       <div className="grid gap-10 lg:grid-cols-2 lg:gap-14">
-        <div className="card overflow-hidden">
-          <GearImage
-            src={product.image}
-            alt={product.name}
-            size={800}
-            priority
-            padding="p-[12%]"
-            className="aspect-square w-full"
-          />
-        </div>
+        <ProductGallery name={product.name} images={galleryImages} />
 
         <div>
           <Eyebrow>{product.brand}</Eyebrow>
           <h1 className="mt-2 text-3xl sm:text-4xl">{product.name}</h1>
           <p className="mt-3 text-lg text-fg-2">{product.headline}</p>
+          {productReviews.length > 0 ? <div className="mt-4 flex items-center gap-2"><ReviewStars rating={productReviews[0].rating} /><span className="text-sm text-fg-2">{productReviews.length} avis</span></div> : null}
 
           <div className="mt-6 flex flex-wrap items-center gap-4">
             <Price product={product} size="lg" />
@@ -110,6 +106,8 @@ export default async function ProduitPage({ params }: { params: Params }) {
             <h2 className="text-lg">Description</h2>
             <p className="mt-2 text-fg-2">{product.description}</p>
           </div>
+
+          {productReviews.length > 0 ? <section className="mt-9"><h2 className="text-lg">Avis clients</h2><div className="mt-3 space-y-4">{productReviews.map((review) => <article key={review.id} className="border-t border-line pt-4"><div className="flex items-center justify-between gap-3"><ReviewStars rating={review.rating} /><span className="text-sm text-fg-3">{review.customer}</span></div><h3 className="mt-2 font-semibold">{review.title}</h3><p className="mt-1 text-sm text-fg-2">{review.body}</p></article>)}</div></section> : null}
 
           <div className="mt-9">
             <h2 className="text-lg">Fiche technique</h2>

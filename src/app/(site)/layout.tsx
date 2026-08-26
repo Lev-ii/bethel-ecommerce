@@ -1,6 +1,8 @@
 import { Header } from "@/components/layout/Header";
 import { currentUser } from "@/lib/auth/current";
 import { Footer } from "@/components/layout/Footer";
+import { MiniCartDrawer } from "@/components/cart/MiniCartDrawer";
+import { AnnouncementBar } from "@/components/layout/AnnouncementBar";
 
 export default async function SiteLayout({
   children,
@@ -18,6 +20,8 @@ export default async function SiteLayout({
         Aller au contenu
       </a>
       <Header user={user} />
+      <AnnouncementBar />
+      <MiniCartDrawer />
       <main id="contenu" className="flex-1">
         {children}
       </main>

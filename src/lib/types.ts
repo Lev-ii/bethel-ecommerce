@@ -40,6 +40,7 @@ export interface Product {
   specs: Spec[];
   /** Illustration SVG servie depuis /public/produits. */
   image: string;
+  images?: string[];
   featured?: boolean;
   /** Occupe la fiche technique du hero. Un seul produit a la fois. */
   isHero?: boolean;

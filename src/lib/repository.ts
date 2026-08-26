@@ -17,6 +17,11 @@ const productColumns = sql`
   p.price, p.compare_at_price, p.stock, p.low_stock_threshold,
   p.image, p.featured, p.is_hero, p.published,
   COALESCE(
+    (SELECT json_agg(i.url ORDER BY i.position, i.id)
+     FROM product_images i WHERE i.product_id = p.id),
+    '[]'::json
+  ) AS images,
+  COALESCE(
     (SELECT json_agg(json_build_object('label', s.label, 'value', s.value)
                      ORDER BY s.position, s.id)
      FROM product_specs s WHERE s.product_id = p.id),

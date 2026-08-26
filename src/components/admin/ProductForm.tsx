@@ -128,7 +128,7 @@ export function ProductForm({
 
       {/* --------------------------------------------------------- Photo */}
       <section className="card p-5">
-        <h2 className="text-lg">Photo</h2>
+        <h2 className="text-lg">Photos</h2>
         <div className="mt-4 flex flex-col gap-5 sm:flex-row sm:items-start">
           <GearImage
             src={preview ?? product?.image ?? "/produits/trepied.svg"}
@@ -139,13 +139,14 @@ export function ProductForm({
           />
 
           <div className="min-w-0 flex-1">
-            <label htmlFor="image" className="field-label">
-              {isEdit ? "Remplacer la photo" : "Photo du materiel"}
+            <label htmlFor="images" className="field-label">
+              {isEdit ? "Ajouter ou remplacer les photos" : "Photos du matériel"}
             </label>
             <input
-              id="image"
-              name="image"
+              id="images"
+              name="images"
               type="file"
+              multiple
               accept="image/png,image/jpeg,image/webp,image/svg+xml"
               onChange={(e) => {
                 const file = e.target.files?.[0];
@@ -155,12 +156,34 @@ export function ProductForm({
             />
             <p className="mt-1.5 text-sm text-fg-3">
               PNG, JPEG ou WebP, 3 Mo maximum. Un fond transparent et un cadrage
-              carre rendent le mieux.
+              carré rendent le mieux. Vous pouvez en sélectionner autant que
+              nécessaire.
             </p>
+            {isEdit && product?.images?.length ? (
+              <div className="mt-4 flex flex-wrap gap-2">
+                {product.images.map((image, index) => (
+                  <GearImage
+                    key={`${image}-${index}`}
+                    src={image}
+                    alt={`Photo ${index + 1} de ${product.name}`}
+                    size={72}
+                    compact
+                    padding="p-[10%]"
+                    className="h-16 w-16 rounded-card border border-line"
+                  />
+                ))}
+              </div>
+            ) : null}
             {isEdit ? (
-              <p className="mt-1.5 text-sm text-fg-3">
-                Sans nouveau fichier, la photo actuelle est conservee.
-              </p>
+              <div className="mt-3 space-y-2">
+                <p className="text-sm text-fg-3">
+                  Sans nouveau fichier, les photos actuelles sont conservées.
+                </p>
+                <label className="flex items-center gap-2 text-sm text-fg-2">
+                  <input type="checkbox" name="replaceImages" className="h-4 w-4 accent-brand" />
+                  Remplacer la galerie existante
+                </label>
+              </div>
             ) : null}
           </div>
         </div>

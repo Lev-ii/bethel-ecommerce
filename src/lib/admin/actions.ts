@@ -159,6 +159,22 @@ function refreshCatalog(slug?: string) {
   if (slug) revalidatePath(`/boutique/${slug}`);
 }
 
+async function saveProductImages(formData: FormData, productId: string): Promise<string[]> {
+  const files = formData
+    .getAll("images")
+    .filter((value): value is File => value instanceof File && value.size > 0);
+  const urls: string[] = [];
+  for (const file of files) {
+    const url = await saveProductImage(file, productId);
+    if (url) urls.push(url);
+  }
+  return urls;
+}
+
+function shouldReplaceImages(formData: FormData): boolean {
+  return formData.get("replaceImages") === "on";
+}
+
 /* --------------------------------------------------------------- Creation */
 
 export async function createProduct(formData: FormData) {
@@ -171,9 +187,8 @@ export async function createProduct(formData: FormData) {
 
     // L'identifiant est genere avant l'envoi de la photo : il sert de prefixe
     // de rangement dans le bucket.
-    const image =
-      (await saveProductImage(formData.get("image") as File | null, id)) ??
-      "/produits/trepied.svg";
+    const uploadedImages = await saveProductImages(formData, id);
+    const image = uploadedImages[0] ?? "/produits/trepied.svg";
 
     slug = await uniqueSlug(slugify(fields.name));
 
@@ -197,6 +212,12 @@ export async function createProduct(formData: FormData) {
         await tx`UPDATE products SET is_hero = FALSE WHERE id <> ${id}`;
       }
       await writeSpecs(tx as unknown as typeof sql, id, fields.specs);
+      for (const [position, url] of uploadedImages.entries()) {
+        await tx`
+          INSERT INTO product_images (product_id, url, position)
+          VALUES (${id}, ${url}, ${position})
+        `;
+      }
     });
   } catch (error) {
     redirect(`/admin/produits/nouveau?erreur=${codeOf(error)}`);
@@ -221,10 +242,13 @@ export async function updateProduct(formData: FormData) {
     if (!existing) throw invalid("introuvable");
 
     const fields = parseFields(formData);
-    const uploaded = await saveProductImage(
-      formData.get("image") as File | null,
-      id
-    );
+    const replaceImages = shouldReplaceImages(formData);
+    if (replaceImages && formData.getAll("images").some((value) => value instanceof File && value.size > 0)) {
+      await deleteProductImages(id);
+      await sql`DELETE FROM product_images WHERE product_id = ${id}`;
+    }
+    const uploadedImages = await saveProductImages(formData, id);
+    const uploaded = uploadedImages[0];
     slug = await uniqueSlug(slugify(fields.name), id);
 
     await sql.begin(async (tx) => {
@@ -248,6 +272,18 @@ export async function updateProduct(formData: FormData) {
         WHERE id = ${id}
       `;
       await writeSpecs(tx as unknown as typeof sql, id, fields.specs);
+      if (uploadedImages.length > 0) {
+        const [{ maxPosition }] = await tx<Array<{ maxPosition: number | null }>>`
+          SELECT max(position)::int AS "maxPosition"
+          FROM product_images WHERE product_id = ${id}
+        `;
+        for (const [index, url] of uploadedImages.entries()) {
+          await tx`
+            INSERT INTO product_images (product_id, url, position)
+            VALUES (${id}, ${url}, ${(maxPosition ?? -1) + index + 1})
+          `;
+        }
+      }
     });
   } catch (error) {
     redirect(`/admin/produits/${id}?erreur=${codeOf(error)}`);
