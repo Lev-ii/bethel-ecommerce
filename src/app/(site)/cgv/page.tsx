@@ -9,7 +9,7 @@ export default function CgvPage() {
       <h2>Commandes</h2>
       <p>La commande est validée après vérification des coordonnées et de la disponibilité des produits.</p>
       <h2>Paiement</h2>
-      <p>Le paiement à la livraison est réglé au livreur. Les paiements en ligne sont actuellement simulés et seront remplacés par un prestataire marchand avant ouverture.</p>
+      <p>Le paiement à la livraison est réglé au livreur. Les paiements en ligne (mobile money) sont traités par notre prestataire Jeko ; aucune donnée bancaire n'est enregistrée sur ce site.</p>
       <h2>Livraison et retrait</h2>
       <p>Les délais annoncés sont indicatifs. Les frais sont affichés avant la validation et dépendent de la zone de livraison.</p>
       <h2>Retours</h2>

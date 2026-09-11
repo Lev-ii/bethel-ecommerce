@@ -2,16 +2,27 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
-import { Banknote, CreditCard, Loader2, Smartphone, Store } from "lucide-react";
+import { Banknote, Loader2, Smartphone, Store } from "lucide-react";
 import { EmptyState } from "@/components/ui/Primitives";
-import { buildOrderReference, formatPrice } from "@/lib/format";
+import { formatPrice } from "@/lib/format";
 import { quoteShipping } from "@/lib/shop/shipping";
 import { useCart, useCartTotal } from "@/store/cart";
 import { placeOrder } from "@/lib/shop/actions";
-import type { PaymentMethod } from "@/lib/types";
 
-type Errors = Partial<Record<"name" | "phone" | "address" | "city", string>>;
+type Errors = Partial<Record<"name" | "phone" | "address" | "city" | "operator", string>>;
+
+type Operator = "orange" | "mtn" | "moov" | "djamo";
+
+// Jeko fige l'operateur a la creation de la demande : sa page de paiement
+// n'autorise pas d'en changer. Le client doit donc le choisir ici.
+const OPERATORS: Array<{ id: Operator; name: string; logo: string }> = [
+  { id: "orange", name: "Orange Money", logo: "/paiement/orange.png" },
+  { id: "mtn", name: "MTN Money", logo: "/paiement/mtn.png" },
+  { id: "moov", name: "Moov Money", logo: "/paiement/moov.png" },
+  { id: "djamo", name: "Djamo", logo: "/paiement/djamo.png" },
+];
 
 export function CheckoutForm({
   account,
@@ -25,7 +36,8 @@ export function CheckoutForm({
   const subtotal = useCartTotal();
 
   const [mode, setMode] = useState<"livraison" | "retrait">("livraison");
-  const [payment, setPayment] = useState<PaymentMethod>("mobile-money");
+  const [payment, setPayment] = useState<"mobile-money" | "hors-ligne">("mobile-money");
+  const [operator, setOperator] = useState<Operator | null>(null);
   const [form, setForm] = useState({
     name: account?.name ?? "",
     phone: account?.phone ?? "",
@@ -76,8 +88,15 @@ export function CheckoutForm({
         next.city = "Indiquez la ville de livraison.";
       }
     }
+    if (payment === "mobile-money" && !operator) {
+      next.operator = "Choisissez votre opérateur mobile money.";
+    }
     return next;
   };
+
+  const offlineMethod = mode === "retrait" ? "especes-retrait" : "paiement-livraison";
+  const paymentMethod = payment === "mobile-money" ? operator : offlineMethod;
+  const operatorName = OPERATORS.find((o) => o.id === operator)?.name;
 
   const submit = async () => {
     const found = validate();
@@ -89,11 +108,11 @@ export function CheckoutForm({
       return;
     }
 
+    if (!paymentMethod) return;
+
     setSubmitting(true);
     setServerError(null);
 
-    // Etape suivante : appel au prestataire de paiement avant cet
-    // enregistrement. Voir README, "Agregateurs de paiement".
     const result = await placeOrder({
       customerName: form.name.trim(),
       customerPhone: form.phone.trim(),
@@ -101,7 +120,7 @@ export function CheckoutForm({
       deliveryMode: mode,
       address: mode === "livraison" ? form.address.trim() : undefined,
       city: mode === "livraison" ? form.city.trim() : undefined,
-      paymentMethod: payment,
+      paymentMethod,
       deliveryFee: fee,
       items: items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
     });
@@ -112,9 +131,20 @@ export function CheckoutForm({
       return;
     }
 
+    if (result.checkoutUrl) {
+      // Le panier n'est pas vide ici : le client n'a pas encore paye, il va
+      // sur la page du prestataire de paiement et peut annuler. On le vide
+      // seulement s'il revient effectivement sur la page de confirmation
+      // (voir ClearCartOnMount).
+      window.location.assign(result.checkoutUrl);
+      return;
+    }
+
     clear();
     router.push(
-      `/commande/confirmation?ref=${result.reference}&total=${result.total}&mode=${mode}`
+      `/commande/confirmation?ref=${result.reference}&total=${result.total}&mode=${mode}${
+        result.paymentPending ? "&paiement=attente" : ""
+      }`
     );
   };
 
@@ -162,7 +192,7 @@ export function CheckoutForm({
               error={errors.phone}
               autoComplete="tel"
               placeholder="+225 00 00 00 00"
-              hint="Nous appelons ce numéro pour confirmer."
+              hint="Suivi de commande et facture envoyés par WhatsApp sur ce numéro."
             />
             <div className="sm:col-span-2">
               <Field
@@ -172,7 +202,7 @@ export function CheckoutForm({
                 value={form.email}
                 onChange={set("email")}
                 autoComplete="email"
-                hint="Pour recevoir le recu de commande."
+                hint="Pour recevoir aussi la facture et le suivi par email."
               />
             </div>
 
@@ -213,39 +243,81 @@ export function CheckoutForm({
               active={payment === "mobile-money"}
               onClick={() => setPayment("mobile-money")}
               title="Mobile money"
-              detail="Orange, MTN, Moov, Wave"
+              detail={
+                <span className="mt-1.5 flex items-center gap-1.5" aria-label="Orange Money, MTN Money, Moov Money, Djamo">
+                  {OPERATORS.map((o) => (
+                    <Image key={o.id} src={o.logo} alt="" width={24} height={24} className="rounded-full" />
+                  ))}
+                </span>
+              }
               icon={<Smartphone size={17} aria-hidden />}
-            />
-            <ChoiceCard
-              active={payment === "carte"}
-              onClick={() => setPayment("carte")}
-              title="Carte bancaire"
-              detail="Visa, Mastercard"
-              icon={<CreditCard size={17} aria-hidden />}
             />
             {mode === "retrait" ? (
               <ChoiceCard
-                active={payment === "especes-retrait"}
-                onClick={() => setPayment("especes-retrait")}
-                title="Especes au retrait"
+                active={payment === "hors-ligne"}
+                onClick={() => setPayment("hors-ligne")}
+                title="Espèces au retrait"
                 detail="Vous payez en boutique"
                 icon={<Store size={17} aria-hidden />}
               />
-            ) : null}
-            {mode === "livraison" ? (
+            ) : (
               <ChoiceCard
-                active={payment === "paiement-livraison"}
-                onClick={() => setPayment("paiement-livraison")}
+                active={payment === "hors-ligne"}
+                onClick={() => setPayment("hors-ligne")}
                 title="Paiement à la livraison"
                 detail="Réglez à la réception"
                 icon={<Banknote size={17} aria-hidden />}
               />
-            ) : null}
+            )}
           </div>
+
+          {payment === "mobile-money" ? (
+            <fieldset
+              className="mt-5"
+              tabIndex={-1}
+              data-error={errors.operator ? "true" : undefined}
+              aria-describedby={errors.operator ? "operator-error" : undefined}
+            >
+              <legend className="field-label">Votre opérateur</legend>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {OPERATORS.map((o) => (
+                  <button
+                    key={o.id}
+                    type="button"
+                    onClick={() => {
+                      setOperator(o.id);
+                      setErrors((e) => ({ ...e, operator: undefined }));
+                    }}
+                    aria-pressed={operator === o.id}
+                    className={`flex items-center gap-2.5 rounded-card border p-3 text-left text-sm font-semibold transition-colors ${
+                      operator === o.id
+                        ? "border-fg bg-bg-2"
+                        : errors.operator
+                          ? "border-danger"
+                          : "border-line hover:border-fg-3"
+                    }`}
+                  >
+                    <Image src={o.logo} alt="" width={28} height={28} className="shrink-0 rounded-full" />
+                    {o.name}
+                  </button>
+                ))}
+              </div>
+              {errors.operator ? (
+                <p id="operator-error" className="mt-1.5 text-sm text-danger">
+                  {errors.operator}
+                </p>
+              ) : null}
+            </fieldset>
+          ) : null}
+
           <p className="mt-4 text-sm text-fg-2">
-            {payment === "paiement-livraison"
-              ? "Vous paierez directement au livreur. Aucun paiement en ligne n'est nécessaire."
-              : "Le paiement est simulé pour le moment. Aucune donnée bancaire n'est enregistrée sur ce site."}
+            {payment === "hors-ligne"
+              ? mode === "retrait"
+                ? "Vous réglerez en espèces au moment du retrait en boutique."
+                : "Vous paierez directement au livreur. Aucun paiement en ligne n'est nécessaire."
+              : `Vous serez redirigé vers la page de paiement sécurisée${
+                  operatorName ? ` ${operatorName}` : ""
+                } pour confirmer depuis votre téléphone.`}
           </p>
         </section>
       </div>
@@ -308,7 +380,7 @@ export function CheckoutForm({
               Validation...
             </>
           ) : (
-            payment === "paiement-livraison" ? "Confirmer la commande" : "Valider et payer"
+            payment === "hors-ligne" ? "Confirmer la commande" : "Valider et payer"
           )}
         </button>
 
@@ -333,7 +405,7 @@ function ChoiceCard({
   active: boolean;
   onClick: () => void;
   title: string;
-  detail: string;
+  detail: React.ReactNode;
   icon?: React.ReactNode;
 }) {
   return (

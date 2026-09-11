@@ -1,36 +1,39 @@
 import { ChevronDown } from "lucide-react";
 import {
+  canAdvanceOrder,
   formatDateTime,
   formatPrice,
   orderStatusFlow,
   orderStatusLabel,
+  paymentMethodLabel,
 } from "@/lib/format";
 import { getOrders } from "@/lib/repository";
+import { PAYMENT_TIMEOUT_MINUTES, releaseExpiredReservationsQuietly } from "@/lib/shop/reservations";
 import { setOrderStatus } from "@/lib/admin/actions";
+import { MarkAllSeenButton, MarkSeenOnOpen } from "@/components/admin/OrderSeenControls";
 import type { OrderStatus } from "@/lib/types";
 
-const paymentLabel: Record<string, string> = {
-  "mobile-money": "Mobile money",
-  carte: "Carte bancaire",
-  "especes-retrait": "Espèces au retrait",
-  "paiement-livraison": "Paiement à la livraison",
-};
 
 export async function OrdersTable({ filter }: { filter?: string }) {
+  await releaseExpiredReservationsQuietly();
   const all = await getOrders();
   const active = (filter ?? "toutes") as OrderStatus | "toutes";
   const orders = active === "toutes" ? all : all.filter((o) => o.status === active);
 
   const filters: Array<{ value: string; label: string }> = [
     { value: "toutes", label: "Toutes" },
+    { value: "attente_paiement", label: orderStatusLabel.attente_paiement },
     ...orderStatusFlow.map((s) => ({ value: s, label: orderStatusLabel[s] })),
   ];
 
   return (
     <div className="space-y-6">
-      <header>
-        <p className="eyebrow">Ventes</p>
-        <h1 className="mt-2 text-3xl">Commandes</h1>
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="eyebrow">Ventes</p>
+          <h1 className="mt-2 text-3xl">Commandes</h1>
+        </div>
+        <MarkAllSeenButton />
       </header>
 
       <nav className="flex flex-wrap gap-2" aria-label="Filtrer par état">
@@ -61,6 +64,7 @@ export async function OrdersTable({ filter }: { filter?: string }) {
               />
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
+                  {o.unseen ? <MarkSeenOnOpen orderId={o.id} /> : null}
                   <span className="tabular text-sm font-semibold">{o.reference}</span>
                   <span className="truncate text-sm text-fg-2">{o.customerName}</span>
                 </div>
@@ -101,13 +105,20 @@ export async function OrdersTable({ filter }: { filter?: string }) {
                     ) : null}
                     <div className="flex gap-2">
                       <dt className="text-fg-3">Paiement</dt>
-                      <dd>{paymentLabel[o.paymentMethod]}</dd>
+                      <dd>{paymentMethodLabel[o.paymentMethod] ?? o.paymentMethod}</dd>
                     </div>
                     <div className="flex gap-2">
                       <dt className="text-fg-3">Compte</dt>
                       <dd>{o.userId ? "Client connecté" : "Commande sans compte"}</dd>
                     </div>
                   </dl>
+
+                  {o.paymentError ? (
+                    <p className="mt-3 rounded-card border border-danger/30 bg-danger/5 px-3 py-2 text-xs text-danger">
+                      <span className="font-semibold">Erreur paiement (debug) : </span>
+                      {o.paymentError}
+                    </p>
+                  ) : null}
                 </div>
 
                 <div>
@@ -128,7 +139,24 @@ export async function OrdersTable({ filter }: { filter?: string }) {
               </div>
 
               <div className="mt-5 border-t border-line pt-4">
+                {!canAdvanceOrder(o) ? (
+                  <p className="text-sm text-fg-2">
+                    {o.status === "annulee"
+                      ? "Commande annulée : elle ne peut plus être avancée."
+                      : `Paiement mobile money non confirmé : la commande ne peut pas être préparée. Sans paiement, elle est annulée automatiquement ${PAYMENT_TIMEOUT_MINUTES} minutes après sa création.`}
+                  </p>
+                ) : (
+                <>
+                {o.status === "attente_paiement" ? (
+                  <p className="mb-3 text-sm text-fg-2">
+                    Paiement en ligne non reçu, mais retrait en boutique : vous pouvez avancer la
+                    commande si le client règle sur place.
+                  </p>
+                ) : null}
                 <p className="field-label">Faire avancer la commande</p>
+                <p className="-mt-1 mb-2 text-xs text-fg-3">
+                  Le client est prévenu à chaque étape par WhatsApp{o.customerEmail ? " et par email" : ""}.
+                </p>
                 <div className="flex flex-wrap gap-2">
                   {orderStatusFlow.map((s) => (
                     <form key={s} action={setOrderStatus}>
@@ -148,6 +176,8 @@ export async function OrdersTable({ filter }: { filter?: string }) {
                     </form>
                   ))}
                 </div>
+                </>
+                )}
               </div>
             </div>
           </details>
@@ -169,7 +199,9 @@ function StatusPill({ status }: { status: OrderStatus }) {
       ? "border-ok/30 bg-ok/5 text-ok"
       : status === "annulee"
         ? "border-danger/30 bg-danger/5 text-danger"
-        : status === "recue"
+        : status === "attente_paiement"
+          ? "border-dashed border-line-2 bg-bg text-fg-3"
+          : status === "recue"
           ? "border-brand bg-brand/20 text-brand-deep"
           : "border-line bg-bg text-fg-2";
 

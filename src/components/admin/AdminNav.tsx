@@ -6,6 +6,7 @@ import { ExternalLink, LayoutDashboard, Package, ShoppingCart } from "lucide-rea
 import { KelvinBar } from "@/components/ui/Primitives";
 import { Logo } from "@/components/layout/Logo";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
+import { useUnseenOrderCount } from "@/components/admin/AdminNotifications";
 
 const links = [
   { href: "/admin", label: "Tableau de bord", icon: LayoutDashboard },
@@ -15,6 +16,7 @@ const links = [
 
 export function AdminNav() {
   const pathname = usePathname();
+  const { count: unseen } = useUnseenOrderCount();
 
   return (
     <aside className="shrink-0 border-b border-sidebar-fg/15 bg-sidebar text-sidebar-fg lg:min-h-dvh lg:w-60 lg:border-b-0 lg:border-r lg:border-sidebar-fg/15">
@@ -56,6 +58,12 @@ export function AdminNav() {
                 >
                   <Icon size={17} aria-hidden />
                   {label}
+                  {href === "/admin/commandes" && unseen > 0 ? (
+                    <span className="ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-danger px-1.5 py-0.5 text-[11px] font-semibold leading-none text-white tabular">
+                      {unseen > 99 ? "99+" : unseen}
+                      <span className="sr-only"> nouvelle{unseen > 1 ? "s" : ""} commande{unseen > 1 ? "s" : ""}</span>
+                    </span>
+                  ) : null}
                 </Link>
               </li>
             );

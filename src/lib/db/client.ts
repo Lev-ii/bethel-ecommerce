@@ -21,16 +21,29 @@ function connect() {
     );
   }
 
+  // Nombre de connexions ouvertes par instance de fonction serverless, pas au
+  // total : sous forte charge, Vercel fait tourner plusieurs instances en
+  // parallele, chacune avec son propre pool. La bonne valeur depend donc de
+  // la limite de connexions de l'hebergeur de base (souvent un pooler style
+  // PgBouncer) divisee par le nombre d'instances attendu — jamais un nombre
+  // fixe valable partout. DB_POOL_MAX permet de l'ajuster sans toucher au
+  // code au moment de choisir cet hebergeur.
+  const defaultMax = process.env.NODE_ENV === "production" ? 5 : 10;
+  const configuredMax = Number(process.env.DB_POOL_MAX);
+  const max = Number.isInteger(configuredMax) && configuredMax > 0 ? configuredMax : defaultMax;
+
   return postgres(url, {
-    // Supabase impose TLS. En local, le certificat n'existe pas.
+    // Necessaire hors localhost ; desactive uniquement pour un Postgres local
+    // sans certificat.
     ssl: url.includes("localhost") || url.includes("127.0.0.1")
       ? false
       : "require",
-    // Le pooler de Supabase ne supporte pas les requetes preparees.
-    prepare: false,
-    // Vercel execute des fonctions courtes : un pool large ne sert a rien et
-    // epuiserait le quota de connexions de la base.
-    max: process.env.NODE_ENV === "production" ? 5 : 10,
+    // Desactive par defaut : le pooler de Supabase (PgBouncer en mode
+    // transaction) ne supporte pas les requetes preparees. Un hebergeur sans
+    // ce genre de pooler devant lui peut activer DB_PREPARE=true pour de
+    // meilleures performances.
+    prepare: process.env.DB_PREPARE === "true",
+    max,
     idle_timeout: 20,
     connect_timeout: 10,
   });

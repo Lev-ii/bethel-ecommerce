@@ -10,7 +10,8 @@ export type AuthErrorReason =
   | "email"
   | "motdepasse"
   | "existe"
-  | "nom";
+  | "nom"
+  | "service";
 
 export const authErrorMessages: Record<AuthErrorReason, string> = {
   identifiants: "Email ou mot de passe incorrect.",
@@ -20,6 +21,7 @@ export const authErrorMessages: Record<AuthErrorReason, string> = {
     "Le mot de passe doit faire au moins 8 caracteres, avec une lettre et un chiffre.",
   existe: "Un compte existe deja avec cette adresse.",
   nom: "Indiquez votre nom complet.",
+  service: "Service momentanement indisponible. Reessayez dans un instant.",
 };
 
 export function authErrorMessage(reason?: string): string | undefined {

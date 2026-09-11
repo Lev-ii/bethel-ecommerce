@@ -131,11 +131,11 @@ try {
         await tx`
           INSERT INTO orders (
             id, reference, customer_name, customer_phone, customer_email,
-            delivery_mode, address, city, payment_method, total, status, created_at
+            delivery_mode, address, city, payment_method, paid_at, total, status, created_at
           ) VALUES (
             ${o.id}, ${o.reference}, ${o.customerName}, ${o.customerPhone},
             ${o.customerEmail ?? null}, ${o.deliveryMode}, ${o.address ?? null},
-            ${o.city ?? null}, ${o.paymentMethod}, ${o.total}, ${o.status}, ${o.createdAt}
+            ${o.city ?? null}, ${o.paymentMethod}, ${o.paidAt ?? null}, ${o.total}, ${o.status}, ${o.createdAt}
           )
         `;
         for (const l of o.lines) {

@@ -9,6 +9,7 @@ import {
   orderStatusLabel,
 } from "@/lib/format";
 import { getOrderByReference } from "@/lib/repository";
+import { PAYMENT_TIMEOUT_MINUTES, releaseExpiredReservationsQuietly } from "@/lib/shop/reservations";
 
 export const metadata: Metadata = {
   title: "Suivre ma commande",
@@ -24,6 +25,7 @@ export default async function SuiviPage({
 }) {
   const sp = await searchParams;
   const reference = sp.ref?.trim() ?? "";
+  if (reference) await releaseExpiredReservationsQuietly({ reference });
   const order = reference ? await getOrderByReference(reference) : undefined;
 
   return (
@@ -91,6 +93,19 @@ export default async function SuiviPage({
             </p>
           </div>
 
+          {order.status === "attente_paiement" ? (
+            <p className="mt-6 rounded-card border border-line bg-bg-2 p-4 text-sm text-fg-2">
+              <span className="font-semibold text-fg">Paiement en attente.</span> La commande sera
+              traitée dès que le paiement mobile money sera confirmé. Sans paiement sous{" "}
+              {PAYMENT_TIMEOUT_MINUTES} minutes, elle est annulée automatiquement.
+            </p>
+          ) : order.status === "annulee" ? (
+            <p className="mt-6 rounded-card border border-danger/30 bg-danger/5 p-4 text-sm text-fg-2">
+              <span className="font-semibold text-danger">Commande annulée.</span> Si vous avez été
+              débité, contactez-nous avec cette référence.
+            </p>
+          ) : null}
+
           {/* Etapes du parcours. L'etat courant est nomme, pas seulement colore. */}
           <ol className="mt-7 space-y-0">
             {orderStatusFlow.map((status, index) => {
@@ -155,6 +170,14 @@ export default async function SuiviPage({
                 {formatPrice(order.total)}
               </span>
             </div>
+            {order.paidAt || order.status === "livree" ? (
+              <a
+                href={`/api/commande/${encodeURIComponent(order.reference)}/facture`}
+                className="btn-outline mt-5 inline-flex"
+              >
+                Télécharger la facture PDF
+              </a>
+            ) : null}
           </div>
         </div>
       ) : null}

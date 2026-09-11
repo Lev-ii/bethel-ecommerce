@@ -64,6 +64,9 @@ export interface OrderRow {
   address: string | null;
   city: string | null;
   payment_method: string;
+  payment_error: string | null;
+  paid_at: Date | null;
+  admin_seen_at: Date | null;
   total: number;
   status: string;
   created_at: Date;
@@ -87,6 +90,9 @@ export function toOrder(row: OrderRow): Order {
     address: row.address ?? undefined,
     city: row.city ?? undefined,
     paymentMethod: row.payment_method as Order["paymentMethod"],
+    paymentError: row.payment_error ?? undefined,
+    paidAt: row.paid_at ? row.paid_at.toISOString() : undefined,
+    unseen: row.admin_seen_at === null && row.status === "recue",
     total: row.total,
     status: row.status as OrderStatus,
     createdAt: row.created_at.toISOString(),

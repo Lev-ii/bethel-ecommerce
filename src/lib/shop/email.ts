@@ -1,19 +1,27 @@
 import "server-only";
 
-export interface OrderEmail {
+export interface EmailMessage {
   to: string;
   subject: string;
-  reference: string;
-  total: number;
+  html: string;
+  text: string;
+  attachments?: Array<{ filename: string; content: Uint8Array }>;
 }
 
 export interface EmailProvider {
-  sendOrderConfirmation(email: OrderEmail): Promise<void>;
+  send(message: EmailMessage): Promise<void>;
 }
 
+/**
+ * Aucun service d'envoi n'est encore branche (il faut un domaine verifie) :
+ * les emails sont prepares en entier mais seulement journalises.
+ */
 class SimulatedEmailProvider implements EmailProvider {
-  async sendOrderConfirmation(email: OrderEmail): Promise<void> {
-    console.info(`[email] confirmation ${email.reference} préparée pour ${email.to}`);
+  async send(message: EmailMessage): Promise<void> {
+    const files = message.attachments?.map((a) => `${a.filename} (${a.content.byteLength} o)`).join(", ");
+    console.info(
+      `[email simulé] à ${message.to} · « ${message.subject} »${files ? ` · pièce jointe : ${files}` : ""}\n${message.text}`
+    );
   }
 }
 

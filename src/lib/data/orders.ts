@@ -11,7 +11,8 @@ export const orders: Order[] = [
     deliveryMode: "livraison",
     address: "Rue des Jardins, Cocody",
     city: "Abidjan",
-    paymentMethod: "mobile-money",
+    paymentMethod: "orange",
+    paidAt: "2026-07-28T09:14:00.000Z",
     lines: [
       {
         productId: "p-003",
@@ -58,7 +59,8 @@ export const orders: Order[] = [
     deliveryMode: "livraison",
     address: "Boulevard Latrille, Deux-Plateaux",
     city: "Abidjan",
-    paymentMethod: "carte",
+    paymentMethod: "wave",
+    paidAt: "2026-07-26T11:07:00.000Z",
     lines: [
       {
         productId: "p-005",
@@ -85,7 +87,8 @@ export const orders: Order[] = [
     deliveryMode: "livraison",
     address: "Quartier Belleville",
     city: "Bouake",
-    paymentMethod: "mobile-money",
+    paymentMethod: "mtn",
+    paidAt: "2026-07-24T08:22:00.000Z",
     lines: [
       {
         productId: "p-001",

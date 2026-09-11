@@ -67,7 +67,14 @@ export async function signIn(formData: FormData) {
     redirect(`/connexion?erreur=champs${back}`);
   }
 
-  const user = await getUserByEmail(email);
+  let user;
+  try {
+    user = await getUserByEmail(email);
+  } catch {
+    // Une panne de base ne doit jamais ressembler a un mauvais mot de passe.
+    redirect(`/connexion?erreur=service${back}`);
+  }
+
   // Meme message dans les deux cas : distinguer les deux reviendrait a dire
   // qui possede un compte chez nous.
   const ok = user ? await verifyPassword(password, user.passwordHash) : false;
@@ -93,7 +100,16 @@ export async function signUp(formData: FormData) {
     redirect("/inscription?erreur=email");
   }
   if (passwordProblem(password)) redirect("/inscription?erreur=motdepasse");
-  if (await getUserByEmail(email)) redirect("/inscription?erreur=existe");
+
+  let existing;
+  try {
+    existing = await getUserByEmail(email);
+  } catch {
+    // Sans verification fiable de l'unicite de l'email, on refuse de creer
+    // le compte plutot que de risquer un doublon silencieux.
+    redirect("/inscription?erreur=service");
+  }
+  if (existing) redirect("/inscription?erreur=existe");
 
   const passwordHash = await hashPassword(password);
   const user: User = {
@@ -138,7 +154,12 @@ export async function requestPasswordReset(formData: FormData) {
   const email = normalizeEmail(formData.get("email"));
   if (!email) redirect("/mot-de-passe-oublie?erreur=email");
 
-  const user = await getUserByEmail(email);
+  let user;
+  try {
+    user = await getUserByEmail(email);
+  } catch {
+    redirect("/mot-de-passe-oublie?erreur=service");
+  }
   if (user) {
     const token = randomBytes(32).toString("hex");
     await sql`

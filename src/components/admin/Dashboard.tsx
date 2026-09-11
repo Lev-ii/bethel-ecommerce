@@ -2,14 +2,18 @@ import Link from "next/link";
 import { AlertTriangle, ArrowRight } from "lucide-react";
 import { formatDateTime, formatPrice, orderStatusLabel, stockState } from "@/lib/format";
 import { getAllProducts, getOrders } from "@/lib/repository";
+import { releaseExpiredReservationsQuietly } from "@/lib/shop/reservations";
 import { ResetDemoButton } from "@/components/admin/ResetDemoButton";
 
 export async function Dashboard() {
+  await releaseExpiredReservationsQuietly();
   const [products, orders] = await Promise.all([getAllProducts(), getOrders()]);
 
-  const revenue = orders
-    .filter((o) => o.status !== "annulee")
-    .reduce((sum, o) => sum + o.total, 0);
+  // Une commande en ligne non payee n'est pas une vente : ni dans le chiffre
+  // d'affaires, ni dans les meilleures ventes.
+  const counted = orders.filter((o) => o.status !== "annulee" && o.status !== "attente_paiement");
+
+  const revenue = counted.reduce((sum, o) => sum + o.total, 0);
 
   const pending = orders.filter(
     (o) => o.status === "recue" || o.status === "preparee"
@@ -19,8 +23,7 @@ export async function Dashboard() {
 
   /* Produits les plus vendus, calcules a partir des lignes de commande. */
   const sold = new Map<string, { name: string; qty: number }>();
-  for (const order of orders) {
-    if (order.status === "annulee") continue;
+  for (const order of counted) {
     for (const line of order.lines) {
       const current = sold.get(line.productId) ?? { name: line.name, qty: 0 };
       current.qty += line.quantity;

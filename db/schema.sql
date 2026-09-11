@@ -95,9 +95,18 @@ CREATE TABLE IF NOT EXISTS orders (
   -- bancaire n'est stockee ici, seulement cet identifiant.
   payment_ref     TEXT,
   paid_at         TIMESTAMPTZ,
+  -- Message technique du prestataire de paiement quand la mise en relation
+  -- echoue (mauvaise config, compte non valide, etc). Jamais montre au
+  -- client : uniquement pour le debug en admin (voir OrdersTable).
+  payment_error   TEXT,
   total           INTEGER NOT NULL,
+  -- Premiere ouverture par un admin. NULL + 'recue' = nouvelle commande,
+  -- comptee dans la pastille "Commandes" de l'administration.
+  admin_seen_at   TIMESTAMPTZ,
+  -- 'attente_paiement' : commande en ligne dont le paiement n'est pas encore
+  -- confirme par Jeko. Elle ne passe en 'recue' qu'une fois payee.
   status          TEXT NOT NULL DEFAULT 'recue'
-                    CHECK (status IN ('recue','preparee','expediee','livree','annulee')),
+                    CHECK (status IN ('attente_paiement','recue','preparee','expediee','livree','annulee')),
   created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -131,3 +140,23 @@ CREATE INDEX IF NOT EXISTS order_lines_order_idx ON order_lines (order_id);
 
 -- Rattrapage des bases creees avant l'ajout du produit vedette.
 ALTER TABLE products ADD COLUMN IF NOT EXISTS is_hero BOOLEAN NOT NULL DEFAULT FALSE;
+
+-- Rattrapage des bases creees avant l'ajout du message d'erreur de paiement.
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_error TEXT;
+
+-- Rattrapage des bases creees avant l'etat 'attente_paiement'. Les commandes
+-- en ligne encore impayees etaient jusque-la marquees 'recue' a tort.
+ALTER TABLE orders DROP CONSTRAINT IF EXISTS orders_status_check;
+ALTER TABLE orders ADD CONSTRAINT orders_status_check
+  CHECK (status IN ('attente_paiement','recue','preparee','expediee','livree','annulee'));
+UPDATE orders SET status = 'attente_paiement'
+WHERE status = 'recue' AND paid_at IS NULL
+  AND payment_method IN ('orange','mtn','moov','djamo','wave','mobile-money','carte');
+
+-- Rattrapage des bases creees avant le suivi des commandes non lues. Le
+-- DEFAULT ne s'applique qu'a la creation de la colonne : les commandes deja
+-- la sont considerees comme vues, les suivantes arrivent a NULL.
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS admin_seen_at TIMESTAMPTZ DEFAULT now();
+ALTER TABLE orders ALTER COLUMN admin_seen_at DROP DEFAULT;
+CREATE INDEX IF NOT EXISTS orders_unseen_idx ON orders (created_at DESC)
+  WHERE admin_seen_at IS NULL AND status = 'recue';

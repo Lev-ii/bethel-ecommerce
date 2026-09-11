@@ -15,17 +15,17 @@ import {
 } from "@/lib/repository";
 import { GearImage } from "@/components/product/GearImage";
 
-// Teintes analogues au jaune de marque (#FFED43), reprises de la bande
-// "kelvin" du site : ambre profond -> or -> olive. Faible saturation,
-// utilisees a basse opacite pour ne pas rivaliser avec le produit.
+// Palette chaude pour le mode jour : plus claire, plus douce, mais encore
+// imposee. En mode nuit, on assombrit legerement la teinte pour garder le
+// meme rendu sans eblouir.
 const CATEGORY_ACCENTS: Record<string, string> = {
-  trépieds: "180 116 26", // ambre profond (identique au kelvin-bar)
-  microphones: "201 138 58", // ambre chaud
-  éclairage: "217 181 74", // or, proche de la marque sans la dupliquer
-  objectifs: "156 139 78", // olive dore
-  accessoires: "143 122 69", // olive profond
+  trepieds: "255 138 117", // FF8A75
+  microphones: "255 161 117", // FFA175
+  eclairage: "255 184 117", // FFB875
+  objectifs: "255 204 117", // FFCC75
+  accessoires: "255 227 117", // FFE375
 };
-const FALLBACK_ACCENT = "156 139 78";
+const FALLBACK_ACCENT = "255 194 122";
 
 export default async function AccueilPage() {
   const [featured, categories, all, hero] = await Promise.all([
@@ -167,16 +167,18 @@ export default async function AccueilPage() {
                   "--accent": CATEGORY_ACCENTS[c.slug] ?? FALLBACK_ACCENT,
                 } as CSSProperties
               }
-              className="group flex flex-col justify-between gap-6 rounded-card
-                border border-[rgb(var(--accent)/0.28)] bg-[rgb(var(--accent)/0.08)]
-                p-5 transition-colors
-                hover:border-[rgb(var(--accent)/0.55)] hover:bg-[rgb(var(--accent)/0.13)]"
+              className="group flex flex-col justify-between gap-6 rounded-card border
+                border-[rgb(var(--accent)/0.7)] bg-[rgb(var(--accent))] p-5 text-brand-ink
+                shadow-[inset_0_0_0_1px_rgba(17,17,17,0.05)] transition-transform duration-150
+                hover:-translate-y-0.5 dark:brightness-90"
             >
               <div>
-                <h3 className="text-lg leading-snug">{c.name}</h3>
-                <p className="mt-1.5 text-sm text-fg-2">{c.tagline}</p>
+                <h3 className="text-lg leading-snug text-brand-ink">{c.name}</h3>
+                <p className="mt-1.5 text-sm text-[rgb(var(--brand-ink)/0.74)]">
+                  {c.tagline}
+                </p>
               </div>
-              <span className="tabular flex items-center gap-1.5 text-xs uppercase tracking-wide text-fg-3">
+              <span className="tabular flex items-center gap-1.5 text-xs uppercase tracking-wide text-[rgb(var(--brand-ink)/0.82)]">
                 Parcourir
                 <ArrowRight
                   size={13}

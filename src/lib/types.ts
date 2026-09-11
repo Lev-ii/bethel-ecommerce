@@ -50,6 +50,7 @@ export interface Product {
 export type StockState = "in" | "low" | "out";
 
 export type OrderStatus =
+  | "attente_paiement"
   | "recue"
   | "preparee"
   | "expediee"
@@ -57,8 +58,11 @@ export type OrderStatus =
   | "annulee";
 
 export type PaymentMethod =
-  | "mobile-money"
-  | "carte"
+  | "orange"
+  | "mtn"
+  | "moov"
+  | "djamo"
+  | "wave"
   | "especes-retrait"
   | "paiement-livraison";
 
@@ -82,6 +86,12 @@ export interface Order {
   address?: string;
   city?: string;
   paymentMethod: PaymentMethod;
+  /** ISO 8601. Renseigne quand le paiement en ligne est confirme par Jeko. */
+  paidAt?: string;
+  /** Aucun admin ne l'a encore ouverte (voir la pastille "Commandes"). */
+  unseen?: boolean;
+  /** Message technique du prestataire si la mise en relation a echoue. Debug admin uniquement. */
+  paymentError?: string;
   lines: OrderLine[];
   total: number;
   status: OrderStatus;

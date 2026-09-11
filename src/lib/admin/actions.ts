@@ -2,12 +2,14 @@
 
 import { randomUUID } from "node:crypto";
 import { redirect } from "next/navigation";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { assertAdmin } from "@/lib/auth/current";
 import { sql } from "@/lib/db/client";
 import { deleteProductImages, saveProductImage, UploadError } from "@/lib/storage";
 import { categories } from "@/lib/data/catalog";
-import type { CategorySlug, OrderStatus, Spec } from "@/lib/types";
+import { canAdvanceOrder } from "@/lib/format";
+import { notifyCustomerLater, type CustomerEvent } from "@/lib/shop/notifications";
+import type { CategorySlug, OrderStatus, PaymentMethod, Spec } from "@/lib/types";
 
 /** Transforme un nom en identifiant d'URL : "Ring light 18" -> "ring-light-18". */
 function slugify(value: string): string {
@@ -152,6 +154,10 @@ async function writeSpecs(
 }
 
 function refreshCatalog(slug?: string) {
+  // Le catalogue est mis en cache (voir repository.ts) : sans ce tag, une
+  // modification admin resterait invisible en boutique jusqu'a expiration du
+  // cache, jusqu'a 30s plus tard.
+  revalidateTag("products");
   revalidatePath("/");
   revalidatePath("/boutique");
   revalidatePath("/admin");
@@ -353,10 +359,63 @@ export async function setOrderStatus(formData: FormData) {
   if (!validStatuses.includes(requestedStatus as OrderStatus)) return;
   const status = requestedStatus as OrderStatus;
 
-  await sql`UPDATE orders SET status = ${status} WHERE id = ${id}`;
+  const changedReference = await sql.begin(async (tx) => {
+    const [order] = await tx<
+      Array<{
+        reference: string;
+        status: OrderStatus;
+        paid_at: Date | null;
+        payment_method: string;
+        delivery_mode: string;
+      }>
+    >`
+      SELECT reference, status, paid_at, payment_method, delivery_mode
+      FROM orders WHERE id = ${id} FOR UPDATE
+    `;
+    if (
+      !order ||
+      order.status === status ||
+      !canAdvanceOrder({
+        status: order.status,
+        paidAt: order.paid_at?.toISOString(),
+        paymentMethod: order.payment_method as PaymentMethod,
+        deliveryMode: order.delivery_mode as "livraison" | "retrait",
+      })
+    ) {
+      return null;
+    }
+    // Paiement a la reception : livree (ou retiree) veut dire encaissee.
+    const collectsPayment =
+      status === "livree" &&
+      order.paid_at === null &&
+      (order.payment_method === "paiement-livraison" || order.payment_method === "especes-retrait");
+    await tx`
+      UPDATE orders
+      SET status = ${status},
+          admin_seen_at = COALESCE(admin_seen_at, now()),
+          paid_at = ${collectsPayment ? sql`now()` : sql`paid_at`}
+      WHERE id = ${id}
+    `;
+    return order.reference;
+  });
+
+  if (changedReference) {
+    notifyCustomerLater(changedReference, status === "recue" ? "commande_recue" : (status as CustomerEvent));
+  }
 
   revalidatePath("/admin/commandes");
   revalidatePath("/admin");
+}
+
+export async function markOrderSeen(id: string) {
+  await assertAdmin();
+  await sql`UPDATE orders SET admin_seen_at = now() WHERE id = ${id} AND admin_seen_at IS NULL`;
+}
+
+export async function markAllOrdersSeen() {
+  await assertAdmin();
+  await sql`UPDATE orders SET admin_seen_at = now() WHERE admin_seen_at IS NULL`;
+  revalidatePath("/admin/commandes");
 }
 
 export async function resetDemo() {

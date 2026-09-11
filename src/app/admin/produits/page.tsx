@@ -21,11 +21,11 @@ export default async function AdminProduitsPage({
   const sp = await searchParams;
 
   const message = sp.ajoute
-    ? "Le materiel a ete ajoute au catalogue."
+    ? "Le materiel a été ajouté au catalogue."
     : sp.modifie
-      ? "Les modifications ont ete enregistrees."
+      ? "Les modifications ont été enregistrées."
       : sp.supprime
-        ? "Le materiel a ete supprime."
+        ? "Le materiel a été supprimé."
         : null;
 
   return (
