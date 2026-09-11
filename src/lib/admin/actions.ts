@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { assertAdmin } from "@/lib/auth/current";
 import { sql } from "@/lib/db/client";
-import { deleteProductImages, saveProductImage, UploadError } from "@/lib/storage";
+import { deleteProductImageFile, deleteProductImages, saveProductImage, UploadError } from "@/lib/storage";
 import { categories } from "@/lib/data/catalog";
 import { canAdvanceOrder } from "@/lib/format";
 import { notifyCustomerLater, type CustomerEvent } from "@/lib/shop/notifications";
@@ -424,4 +424,57 @@ export async function resetDemo() {
   await seedDemoData({ force: true });
   refreshCatalog();
   revalidatePath("/admin/commandes");
+}
+
+/* --------------------------------------------------------- Gestion images */
+
+export async function deleteProductImage(productId: string, imagePosition: string) {
+  await assertAdmin();
+
+  const position = Number(imagePosition);
+  if (!Number.isInteger(position) || position < 0) return;
+
+  const [image] = await sql<Array<{ url: string }>>`
+    SELECT url FROM product_images WHERE product_id = ${productId} AND position = ${position}
+  `;
+  if (!image) return;
+
+  await sql.begin(async (tx) => {
+    await tx`DELETE FROM product_images WHERE product_id = ${productId} AND position = ${position}`;
+    await tx`
+      UPDATE product_images SET position = position - 1
+      WHERE product_id = ${productId} AND position > ${position}
+    `;
+  });
+
+  await deleteProductImageFile(image.url);
+  refreshCatalog();
+  revalidatePath(`/admin/produits/${productId}`);
+}
+
+export async function reorderProductImages(productId: string, imagePosition: string, direction: "up" | "down") {
+  await assertAdmin();
+
+  const position = Number(imagePosition);
+  if (!Number.isInteger(position) || position < 0) return;
+
+  const newPosition = direction === "up" ? position - 1 : position + 1;
+  if (newPosition < 0) return;
+
+  const [current] = await sql<Array<{ position: number }>>`
+    SELECT position FROM product_images WHERE product_id = ${productId} AND position = ${position}
+  `;
+  const [other] = await sql<Array<{ position: number }>>`
+    SELECT position FROM product_images WHERE product_id = ${productId} AND position = ${newPosition}
+  `;
+
+  if (!current[0] || !other[0]) return;
+
+  await sql.begin(async (tx) => {
+    await tx`UPDATE product_images SET position = ${newPosition} WHERE product_id = ${productId} AND position = ${position}`;
+    await tx`UPDATE product_images SET position = ${position} WHERE product_id = ${productId} AND position = ${newPosition}`;
+  });
+
+  refreshCatalog();
+  revalidatePath(`/admin/produits/${productId}`);
 }

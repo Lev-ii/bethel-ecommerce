@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, ChevronUp, ChevronDown } from "lucide-react";
 import {
   Checkbox,
   Field,
@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/Form";
 import { GearImage } from "@/components/product/GearImage";
 import { categories } from "@/lib/data/catalog";
-import { createProduct, updateProduct } from "@/lib/admin/actions";
+import { createProduct, updateProduct, deleteProductImage, reorderProductImages } from "@/lib/admin/actions";
 import { productErrorField, productErrorMessage } from "@/lib/admin/messages";
 import type { Product, Spec } from "@/lib/types";
 
@@ -40,9 +40,24 @@ export function ProductForm({
     product?.specs.length ? product.specs : [{ label: "", value: "" }]
   );
   const [preview, setPreview] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
 
   const errorFor = (field: string) =>
     invalidField === field ? message : undefined;
+
+  const handleDeleteImage = (imageId: string) => {
+    if (!product) return;
+    startTransition(async () => {
+      await deleteProductImage(product.id, imageId);
+    });
+  };
+
+  const handleReorderImage = (imageId: string, direction: "up" | "down") => {
+    if (!product) return;
+    startTransition(async () => {
+      await reorderProductImages(product.id, imageId, direction);
+    });
+  };
 
   return (
     <form action={action} className="space-y-8">
@@ -160,18 +175,56 @@ export function ProductForm({
               nécessaire.
             </p>
             {isEdit && product?.images?.length ? (
-              <div className="mt-4 flex flex-wrap gap-2">
-                {product.images.map((image, index) => (
-                  <GearImage
-                    key={`${image}-${index}`}
-                    src={image}
-                    alt={`Photo ${index + 1} de ${product.name}`}
-                    size={72}
-                    compact
-                    padding="p-[10%]"
-                    className="h-16 w-16 rounded-card border border-line"
-                  />
-                ))}
+              <div className="mt-4 space-y-3">
+                <p className="text-sm font-medium text-fg-2">Galerie existante :</p>
+                <ul className="space-y-2">
+                  {product.images.map((image, index) => (
+                    <li key={`${image}-${index}`} className="flex items-center gap-2 rounded-card border border-line p-2">
+                      <GearImage
+                        src={image}
+                        alt={`Photo ${index + 1} de ${product.name}`}
+                        size={72}
+                        compact
+                        padding="p-[10%]"
+                        className="h-12 w-12 shrink-0 rounded-sm"
+                      />
+                      <span className="flex-1 text-sm text-fg-2">Photo {index + 1}</span>
+                      <div className="flex gap-1">
+                        {index > 0 ? (
+                          <button
+                            type="button"
+                            disabled={isPending}
+                            onClick={() => handleReorderImage(String(index), "up")}
+                            className="btn-ghost shrink-0 p-1.5 disabled:opacity-50"
+                            aria-label={`Monter la photo ${index + 1}`}
+                          >
+                            <ChevronUp size={16} aria-hidden />
+                          </button>
+                        ) : <div className="w-9" />}
+                        {index < product.images.length - 1 ? (
+                          <button
+                            type="button"
+                            disabled={isPending}
+                            onClick={() => handleReorderImage(String(index), "down")}
+                            className="btn-ghost shrink-0 p-1.5 disabled:opacity-50"
+                            aria-label={`Descendre la photo ${index + 1}`}
+                          >
+                            <ChevronDown size={16} aria-hidden />
+                          </button>
+                        ) : <div className="w-9" />}
+                        <button
+                          type="button"
+                          disabled={isPending}
+                          onClick={() => handleDeleteImage(String(index))}
+                          className="btn-ghost shrink-0 p-1.5 text-danger hover:bg-danger/10 disabled:opacity-50"
+                          aria-label={`Supprimer la photo ${index + 1}`}
+                        >
+                          <Trash2 size={16} aria-hidden />
+                        </button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
               </div>
             ) : null}
             {isEdit ? (

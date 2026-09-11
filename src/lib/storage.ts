@@ -99,6 +99,31 @@ export async function saveProductImage(
 }
 
 /**
+ * Efface une image unique d'un produit.
+ */
+export async function deleteProductImageFile(imageUrl: string): Promise<void> {
+  const client = supabase();
+
+  if (!client) {
+    const match = imageUrl.match(/\/api\/media\/(.+)$/);
+    if (match) {
+      const filePath = path.join(MEDIA_DIR, match[1]);
+      fs.rmSync(filePath, { force: true });
+    }
+    return;
+  }
+
+  try {
+    const match = imageUrl.match(new RegExp(`${BUCKET}/(.+)$`));
+    if (match) {
+      await client.storage.from(BUCKET).remove([match[1]]);
+    }
+  } catch (error) {
+    console.warn("[storage] suppression image impossible", error);
+  }
+}
+
+/**
  * Efface les photos d'un produit supprime.
  *
  * Un echec ici ne doit pas empecher la suppression du produit : mieux vaut un
