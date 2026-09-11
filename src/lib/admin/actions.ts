@@ -468,7 +468,7 @@ export async function reorderProductImages(productId: string, imagePosition: str
     SELECT position FROM product_images WHERE product_id = ${productId} AND position = ${newPosition}
   `;
 
-  if (!current[0] || !other[0]) return;
+  if (!current || !other) return;
 
   await sql.begin(async (tx) => {
     await tx`UPDATE product_images SET position = ${newPosition} WHERE product_id = ${productId} AND position = ${position}`;

@@ -178,7 +178,7 @@ export function ProductForm({
               <div className="mt-4 space-y-3">
                 <p className="text-sm font-medium text-fg-2">Galerie existante :</p>
                 <ul className="space-y-2">
-                  {product.images.map((image, index) => (
+                  {product.images!.map((image, index) => (
                     <li key={`${image}-${index}`} className="flex items-center gap-2 rounded-card border border-line p-2">
                       <GearImage
                         src={image}
@@ -201,7 +201,7 @@ export function ProductForm({
                             <ChevronUp size={16} aria-hidden />
                           </button>
                         ) : <div className="w-9" />}
-                        {index < product.images.length - 1 ? (
+                        {index < product.images!.length - 1 ? (
                           <button
                             type="button"
                             disabled={isPending}
