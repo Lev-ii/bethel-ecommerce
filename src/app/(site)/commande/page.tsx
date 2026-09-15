@@ -9,8 +9,19 @@ export const metadata: Metadata = { title: "Commander" };
 
 export default async function CommandePage() {
   const session = await currentUser();
+
   // Le telephone n'est pas dans la session : on le relit pour pre-remplir.
-  const stored = session ? await getUserById(session.id) : undefined;
+  // Cette lecture est un confort, pas une condition de la commande : si la
+  // base ne repond pas, le formulaire s'affiche sans pre-remplissage plutot
+  // que de faire tomber le tunnel d'achat sur la frontiere d'erreur.
+  let stored;
+  if (session) {
+    try {
+      stored = await getUserById(session.id);
+    } catch (error) {
+      console.error("[commande] pre-remplissage indisponible", session.id, error);
+    }
+  }
 
   const account = session
     ? { name: session.name, email: session.email, phone: stored?.phone }
