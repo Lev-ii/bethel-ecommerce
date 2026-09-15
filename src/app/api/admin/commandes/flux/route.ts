@@ -6,7 +6,14 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
-const POLL_MS = 4_000;
+/**
+ * Un sondage toutes les 4 secondes saturait le pool de connexions : chaque
+ * page d'administration ouverte tient son propre flux, et la transaction du
+ * tunnel d'achat se retrouvait sans connexion disponible (voir le commentaire
+ * de max dans lib/db/client.ts). Vingt secondes restent imperceptibles pour
+ * une notification d'administration et divisent la pression par cinq.
+ */
+const POLL_MS = 20_000;
 // Le flux se ferme avant la limite de duree d'une fonction ; le navigateur
 // (EventSource) se reconnecte seul, ce qui re-verifie aussi la session.
 const STREAM_MS = 240_000;
