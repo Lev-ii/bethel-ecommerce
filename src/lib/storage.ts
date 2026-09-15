@@ -20,12 +20,37 @@ const BUCKET = process.env.SUPABASE_BUCKET ?? "produits";
 const MEDIA_DIR = path.join(process.cwd(), "data", "media");
 
 const MAX_BYTES = 3 * 1024 * 1024;
-const TYPES: Record<string, string> = {
-  "image/png": "png",
-  "image/jpeg": "jpg",
-  "image/webp": "webp",
-  "image/svg+xml": "svg",
-};
+
+/**
+ * Formats acceptes, reconnus a leurs octets d'en-tete.
+ *
+ * Le SVG est volontairement absent : c'est un document XML, il peut contenir
+ * du script, et il serait ensuite re-servi avec son propre type MIME.
+ *
+ * Le type declare par le navigateur (file.type) n'est pas une preuve : il est
+ * choisi par le client. Seul le contenu reel fait foi.
+ */
+const SIGNATURES: Array<{ extension: string; contentType: string; matches: (b: Buffer) => boolean }> = [
+  {
+    extension: "png",
+    contentType: "image/png",
+    matches: (b) => b.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])),
+  },
+  {
+    extension: "jpg",
+    contentType: "image/jpeg",
+    matches: (b) => b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff,
+  },
+  {
+    extension: "webp",
+    contentType: "image/webp",
+    matches: (b) => b.subarray(0, 4).toString("ascii") === "RIFF" && b.subarray(8, 12).toString("ascii") === "WEBP",
+  },
+];
+
+function detectImage(bytes: Buffer) {
+  return SIGNATURES.find((signature) => signature.matches(bytes)) ?? null;
+}
 
 export class UploadError extends Error {}
 
@@ -54,16 +79,19 @@ export async function saveProductImage(
 ): Promise<string | null> {
   if (!file || file.size === 0) return null;
 
-  const extension = TYPES[file.type];
-  if (!extension) {
-    throw new UploadError("Format d'image non accepte.");
-  }
+  // La taille est verifiee avant la lecture : inutile de charger 200 Mo en
+  // memoire pour les refuser ensuite.
   if (file.size > MAX_BYTES) {
     throw new UploadError("L'image depasse 3 Mo.");
   }
 
   const bytes = Buffer.from(await file.arrayBuffer());
-  const objectPath = `${productId}/${randomUUID()}.${extension}`;
+  const format = detectImage(bytes);
+  if (!format) {
+    throw new UploadError("Format d'image non accepte. Utilise un fichier PNG, JPEG ou WebP.");
+  }
+
+  const objectPath = `${productId}/${randomUUID()}.${format.extension}`;
 
   const client = supabase();
 
@@ -84,7 +112,7 @@ export async function saveProductImage(
   const { error } = await client.storage
     .from(BUCKET)
     .upload(objectPath, bytes, {
-      contentType: file.type,
+      contentType: format.contentType,
       // Le nom contient un identifiant unique : jamais de collision.
       upsert: false,
       cacheControl: "31536000",

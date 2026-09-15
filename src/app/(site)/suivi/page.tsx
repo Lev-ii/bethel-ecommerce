@@ -9,6 +9,7 @@ import {
   orderStatusLabel,
 } from "@/lib/format";
 import { getOrderByReference } from "@/lib/repository";
+import { invoicePath } from "@/lib/shop/invoice";
 import { PAYMENT_TIMEOUT_MINUTES, releaseExpiredReservationsQuietly } from "@/lib/shop/reservations";
 
 export const metadata: Metadata = {
@@ -172,7 +173,7 @@ export default async function SuiviPage({
             </div>
             {order.paidAt || order.status === "livree" ? (
               <a
-                href={`/api/commande/${encodeURIComponent(order.reference)}/facture`}
+                href={invoicePath(order.reference)}
                 className="btn-outline mt-5 inline-flex"
               >
                 Télécharger la facture PDF

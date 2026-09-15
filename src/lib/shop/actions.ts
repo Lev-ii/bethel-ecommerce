@@ -8,6 +8,7 @@ import { buildOrderReference } from "@/lib/format";
 import { notifyCustomerLater } from "@/lib/shop/notifications";
 import { paymentProvider } from "@/lib/shop/payment";
 import { releaseExpiredReservationsQuietly } from "@/lib/shop/reservations";
+import { quoteShipping } from "@/lib/shop/shipping";
 import type { PaymentMethod } from "@/lib/types";
 
 export interface PlaceOrderInput {
@@ -18,9 +19,11 @@ export interface PlaceOrderInput {
   address?: string;
   city?: string;
   paymentMethod: PaymentMethod;
-  deliveryFee: number;
   items: Array<{ productId: string; quantity: number }>;
 }
+
+/** Plafond par ligne : au-dela, c'est une erreur de saisie ou un abus. */
+const MAX_QUANTITY_PER_LINE = 50;
 
 export interface PlaceOrderResult {
   reference?: string;
@@ -61,6 +64,20 @@ export async function placeOrder(
   if (input.items.length === 0) {
     return { error: "Votre panier est vide." };
   }
+
+  // Une action serveur est un endpoint HTTP public : le panier qui arrive ici
+  // peut avoir ete forge. Une quantite negative renverrait un sous-total
+  // negatif et augmenterait le stock.
+  for (const item of input.items) {
+    if (!Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > MAX_QUANTITY_PER_LINE) {
+      return { error: "Quantité invalide." };
+    }
+  }
+
+  // Les frais de livraison sont recalcules ici, jamais pris du client, au meme
+  // titre que les prix produits : c'est un montant qui entre dans le total
+  // facture et dans la demande de paiement.
+  const deliveryFee = input.deliveryMode === "livraison" ? quoteShipping(input.city ?? "").fee : 0;
 
   const user = await currentUser();
   const reference = buildOrderReference();
@@ -128,7 +145,7 @@ export async function placeOrder(
         (sum, l) => sum + l.unitPrice * l.quantity,
         0
       );
-      const orderTotal = subtotal + input.deliveryFee;
+      const orderTotal = subtotal + deliveryFee;
 
       await tx`
         INSERT INTO orders (

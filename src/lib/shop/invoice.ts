@@ -1,10 +1,38 @@
 import "server-only";
 
+import { createHmac, timingSafeEqual } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import { authSecret } from "@/lib/auth/session";
 import { formatPrice, paymentMethodLabel } from "@/lib/format";
 import type { Order } from "@/lib/types";
+
+/**
+ * Jeton d'acces a la facture.
+ *
+ * Une facture porte le nom, le telephone et l'adresse du client : la seule
+ * reference ne suffit pas a la proteger, elle est courte et circule par
+ * WhatsApp et par email. Le jeton est un HMAC de la reference, donc
+ * impossible a deviner, stable dans le temps (les liens deja envoyes
+ * continuent de fonctionner) et sans stockage.
+ */
+export function invoiceToken(reference: string): string {
+  return createHmac("sha256", authSecret()).update(reference.trim().toLowerCase()).digest("hex").slice(0, 32);
+}
+
+/** URL complete de la facture, jeton compris. */
+export function invoicePath(reference: string): string {
+  return `/api/commande/${encodeURIComponent(reference)}/facture?t=${invoiceToken(reference)}`;
+}
+
+export function invoiceTokenIsValid(reference: string, token: string | null): boolean {
+  if (!token) return false;
+  const expected = Buffer.from(invoiceToken(reference), "utf8");
+  const actual = Buffer.from(token.trim().toLowerCase(), "utf8");
+  if (expected.length !== actual.length) return false;
+  return timingSafeEqual(expected, actual);
+}
 
 // Les polices standard du PDF ne connaissent que le jeu WinAnsi : un seul
 // caractere hors de ce jeu (espace fine des montants fr-FR, lettre d'une

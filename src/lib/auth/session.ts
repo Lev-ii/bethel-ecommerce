@@ -21,11 +21,18 @@ interface Payload extends SessionUser {
   exp: number;
 }
 
-function secret(): string {
+export function authSecret(): string {
   const value = process.env.AUTH_SECRET;
   if (value && value.length >= 16) return value;
-  // Sans secret configure, le projet doit quand meme demarrer pour la
-  // demonstration. Le README rappelle de le definir avant toute mise en ligne.
+  // Le depot est public : un secret de repli connu permettrait a n'importe qui
+  // de forger un cookie de session ADMIN. En production, mieux vaut refuser de
+  // signer que de signer avec une valeur publique.
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "AUTH_SECRET est absent ou trop court (16 caracteres minimum). " +
+        "Definis-le dans les variables d'environnement avant de deployer."
+    );
+  }
   return "bethel-secret-de-demonstration-a-remplacer";
 }
 
@@ -46,7 +53,7 @@ function fromBase64Url(value: string): Uint8Array<ArrayBuffer> {
 async function key(): Promise<CryptoKey> {
   return crypto.subtle.importKey(
     "raw",
-    new TextEncoder().encode(secret()),
+    new TextEncoder().encode(authSecret()),
     { name: "HMAC", hash: "SHA-256" },
     false,
     ["sign", "verify"]

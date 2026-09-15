@@ -5,6 +5,7 @@ import { CheckCircle2 } from "lucide-react";
 import { ClearCartOnMount } from "@/components/cart/ClearCartOnMount";
 import { Eyebrow, KelvinBar } from "@/components/ui/Primitives";
 import { formatPrice } from "@/lib/format";
+import { invoicePath } from "@/lib/shop/invoice";
 import { syncOrderPayment } from "@/lib/shop/payment";
 
 export const metadata: Metadata = { title: "Commande confirmee" };
@@ -93,7 +94,7 @@ async function Recap({ searchParams }: { searchParams: SearchParams }) {
           <Link href={`/suivi?ref=${reference}`} className="btn-primary">
             Suivre ma commande
           </Link>
-          <a href={`/api/commande/${reference}/facture`} className="btn-outline">
+          <a href={invoicePath(reference)} className="btn-outline">
             Télécharger la facture PDF
           </a>
           <Link href="/boutique" className="btn-outline">

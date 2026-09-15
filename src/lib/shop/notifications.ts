@@ -4,7 +4,7 @@ import { after } from "next/server";
 import { formatPrice, paymentMethodLabel } from "@/lib/format";
 import { getOrderByReference } from "@/lib/repository";
 import { emailProvider } from "@/lib/shop/email";
-import { invoiceFilename, renderInvoicePdf } from "@/lib/shop/invoice";
+import { invoiceFilename, invoicePath, renderInvoicePdf } from "@/lib/shop/invoice";
 import {
   WHATSAPP_TEMPLATES,
   bodyParams,
@@ -170,12 +170,9 @@ export async function notifyCustomer(reference: string, event: CustomerEvent): P
   const firstName = order.customerName.trim().split(/\s+/)[0] || order.customerName;
   const whatsapp = invoice
     ? sendWhatsAppTemplate(phone, WHATSAPP_TEMPLATES.invoice, [
-        // Meta telecharge le PDF lui-meme depuis cette URL : elle doit etre
-        // publique (la reference, impossible a deviner, en est la cle).
-        documentHeader(
-          `${appUrl()}/api/commande/${encodeURIComponent(order.reference)}/facture`,
-          invoiceFilename(order)
-        ),
+        // Meta telecharge le PDF lui-meme depuis cette URL : elle doit rester
+        // accessible sans session. Le jeton signe la protege.
+        documentHeader(`${appUrl()}${invoicePath(order.reference)}`, invoiceFilename(order)),
         bodyParams(firstName, order.reference, formatPrice(order.total)),
       ])
     : sendWhatsAppTemplate(phone, WHATSAPP_TEMPLATES.status, [

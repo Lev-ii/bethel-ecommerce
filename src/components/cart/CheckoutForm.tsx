@@ -121,7 +121,6 @@ export function CheckoutForm({
       address: mode === "livraison" ? form.address.trim() : undefined,
       city: mode === "livraison" ? form.city.trim() : undefined,
       paymentMethod,
-      deliveryFee: fee,
       items: items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
     });
 
