@@ -329,29 +329,4 @@ export const products: Product[] = [
     published: true,
   },
 
-    {
-    id: "p-014",
-    slug: "trepied-telephone-160",
-    name: "Trepied telephone 160 cm",
-    brand: "Bethel Select",
-    category: "trepieds",
-    headline: "Aluminium, rotule 3 axes, telecommande Bluetooth incluse",
-    description:
-      "Le trepied a tout faire : assez haut pour filmer debout, assez leger pour tenir dans un sac. La rotule se bloque sur trois axes, le support telephone s'ouvre jusqu'a 9 cm et la telecommande Bluetooth declenche a distance. Livre avec sa housse.",
-    price: 24500,
-    compareAtPrice: 29000,
-    stock: 18,
-    lowStockThreshold: 5,
-    specs: [
-      { label: "Hauteur maximale", value: "160 cm" },
-      { label: "Hauteur repliee", value: "48 cm" },
-      { label: "Charge maximale", value: "3 kg" },
-      { label: "Filetage", value: '1/4"-20' },
-      { label: "Poids", value: "1,1 kg" },
-      { label: "Livre avec", value: "Housse, telecommande BT" },
-    ],
-    image: "/produits/trepied.jpg",
-    featured: true,
-    published: true,
-  },
 ];
