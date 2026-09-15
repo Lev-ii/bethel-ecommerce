@@ -37,8 +37,14 @@ jobs:
       - name: Construire l'application
         run: npm run build
         env:
-          # Valeurs de facade : le build ne contacte ni la base ni Jeko, mais
-          # NODE_ENV vaut "production", et AUTH_SECRET est desormais exige dans
-          # ce mode. Ce ne sont pas des secrets, seulement de quoi compiler.
+          # Valeurs de facade, jamais des secrets : le build ne contacte ni la
+          # base ni Jeko, il lui faut seulement de quoi charger les modules.
+          #
+          # AUTH_SECRET : "next build" pose NODE_ENV=production, mode dans
+          # lequel l'absence de secret est desormais une erreur.
+          # DATABASE_URL : src/lib/db/client.ts construit le pool au chargement
+          # du module. postgres.js n'ouvre la connexion qu'a la premiere
+          # requete, et la collecte des routes n'en emet aucune.
           AUTH_SECRET: valeur-de-facade-pour-la-compilation
+          DATABASE_URL: postgresql://bethel:bethel@localhost:5432/bethel
           NEXT_PUBLIC_APP_URL: http://localhost:3000
