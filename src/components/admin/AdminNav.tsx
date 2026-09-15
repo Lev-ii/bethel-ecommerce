@@ -19,8 +19,8 @@ export function AdminNav() {
   const { count: unseen } = useUnseenOrderCount();
 
   return (
-    <aside className="shrink-0 border-b border-sidebar-fg/15 bg-sidebar text-sidebar-fg lg:min-h-dvh lg:w-60 lg:border-b-0 lg:border-r lg:border-sidebar-fg/15">
-      <KelvinBar />
+    <aside className="shrink-0 border-b border-sidebar-fg/15 bg-sidebar text-sidebar-fg lg:sticky lg:top-0 lg:flex lg:h-dvh lg:w-60 lg:flex-col lg:overflow-y-auto lg:border-b-0 lg:border-r lg:border-sidebar-fg/15">
+      <KelvinBar className="shrink-0" />
 
       <div className="flex items-center justify-between px-5 py-4 lg:block lg:px-5 lg:py-6">
         <div>
