@@ -4,13 +4,16 @@ A lancer contre "npm run dev". Voir tests/LISEZMOI.md.
 """
 
 import html
+import os
 import re
 import time
 import sys
 
 import requests
 
-BASE = "http://localhost:4400"
+# "next dev" ecoute sur 3000 par defaut. Surcharger avec BETHEL_BASE_URL si le
+# serveur tourne ailleurs.
+BASE = os.environ.get("BETHEL_BASE_URL", "http://localhost:3000")
 
 ok_count = 0
 fail_count = 0

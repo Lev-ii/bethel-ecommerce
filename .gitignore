@@ -6,6 +6,8 @@ build
 .env*.local
 .env.example
 .DS_Store
+# Fichiers de verrouillage crees par Excel a l'ouverture d'un classeur
+~$*
 *.tsbuildinfo
 next-env.d.ts
 README.md

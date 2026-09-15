@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop, staging]
+  pull_request:
+    branches: [main, develop]
+
+# Une nouvelle poussee sur la meme branche annule la verification en cours :
+# inutile de payer deux fois pour un etat depasse.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Typecheck, tests et build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Installer les dependances
+        run: npm ci
+
+      - name: Verifier les types
+        run: npm run typecheck
+
+      - name: Executer les tests unitaires
+        run: npm test
+
+      - name: Construire l'application
+        run: npm run build
+        env:
+          # Valeurs de facade : le build ne contacte ni la base ni Jeko, mais
+          # NODE_ENV vaut "production", et AUTH_SECRET est desormais exige dans
+          # ce mode. Ce ne sont pas des secrets, seulement de quoi compiler.
+          AUTH_SECRET: valeur-de-facade-pour-la-compilation
+          NEXT_PUBLIC_APP_URL: http://localhost:3000
