@@ -48,3 +48,45 @@ jobs:
           AUTH_SECRET: valeur-de-facade-pour-la-compilation
           DATABASE_URL: postgresql://bethel:bethel@localhost:5432/bethel
           NEXT_PUBLIC_APP_URL: http://localhost:3000
+
+  database:
+    name: Stock et concurrence
+    runs-on: ubuntu-latest
+
+    # Le seul test qui prouve qu'un seul client obtient le dernier exemplaire
+    # a besoin d'un vrai PostgreSQL : il verifie les verrous de ligne et les
+    # contraintes CHECK, que rien ne peut simuler.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: bethel
+          POSTGRES_PASSWORD: bethel
+          POSTGRES_DB: bethel
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://bethel:bethel@localhost:5432/bethel
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Installer les dependances
+        run: npm ci
+
+      - name: Preparer la base
+        run: npm run db:setup
+
+      - name: Deux clients sur le dernier exemplaire
+        run: npm run test:concurrence
