@@ -1,0 +1,48 @@
+name: Liberer les reservations expirees
+
+# Remplace la tache planifiee Vercel, impossible sur le plan Hobby : celui-ci
+# n'autorise qu'une execution par jour, et toute expression plus frequente
+# fait echouer le deploiement. Or une reservation abandonnee doit rendre son
+# stock en quelques minutes, pas le lendemain.
+#
+# Filet de securite uniquement : placeOrder et la page de suivi liberent deja
+# les reservations expirees a chaque passage. Cette tache couvre les heures
+# creuses, quand personne ne visite la boutique.
+
+on:
+  schedule:
+    # Toutes les quinze minutes. GitHub n'assure pas la ponctualite et peut
+    # decaler l'execution sous forte charge : acceptable pour un filet.
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+jobs:
+  liberer:
+    name: Rendre le stock des paiements abandonnes
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Appeler la route de liberation
+        env:
+          APP_URL: ${{ secrets.BETHEL_APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          set -u
+          if [ -z "${APP_URL:-}" ] || [ -z "${CRON_SECRET:-}" ]; then
+            echo "Secrets BETHEL_APP_URL ou CRON_SECRET absents du depot."
+            echo "Tache sans effet tant qu'ils ne sont pas definis."
+            exit 0
+          fi
+
+          code=$(curl -sS --max-time 30 -o reponse.txt -w '%{http_code}' \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            "${APP_URL%/}/api/cron/release-expired-orders")
+
+          echo "HTTP ${code}"
+          cat reponse.txt || true
+          echo
+
+          if [ "${code}" != "200" ]; then
+            echo "::error::La liberation des reservations a echoue (HTTP ${code})."
+            exit 1
+          fi
