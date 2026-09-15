@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Banknote, Loader2, Smartphone, Store } from "lucide-react";
@@ -17,6 +17,19 @@ type Operator = "orange" | "mtn" | "moov" | "djamo";
 
 // Jeko fige l'operateur a la creation de la demande : sa page de paiement
 // n'autorise pas d'en changer. Le client doit donc le choisir ici.
+/**
+ * Brouillon des coordonnees, garde dans le navigateur.
+ *
+ * Le paiement en ligne sort du site : le client part chez Jeko et peut
+ * revenir sans avoir paye, par le bouton retour. Sans ce brouillon, l'etat
+ * React est perdu a la navigation et il doit ressaisir nom, telephone et
+ * adresse. Le panier, lui, persiste deja (voir store/cart).
+ *
+ * Reste dans ce navigateur, n'est jamais envoye au serveur, et disparait a la
+ * page de confirmation (voir ClearCartOnMount).
+ */
+export const CHECKOUT_DRAFT_KEY = "bethel-commande-brouillon";
+
 const OPERATORS: Array<{ id: Operator; name: string; logo: string }> = [
   { id: "orange", name: "Orange Money", logo: "/paiement/orange.png" },
   { id: "mtn", name: "MTN Money", logo: "/paiement/mtn.png" },
@@ -49,8 +62,59 @@ export function CheckoutForm({
   const [errors, setErrors] = useState<Errors>({});
   const [submitting, setSubmitting] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
+  const [draftLoaded, setDraftLoaded] = useState(false);
 
-  if (!ready) {
+  // Relecture du brouillon. Apres le montage seulement : le serveur ne connait
+  // pas le stockage du navigateur, le lire au rendu ferait diverger les deux.
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(CHECKOUT_DRAFT_KEY);
+      if (raw) {
+        const draft = JSON.parse(raw) as Record<string, unknown>;
+        if (draft.mode === "livraison" || draft.mode === "retrait") setMode(draft.mode);
+        if (draft.payment === "mobile-money" || draft.payment === "hors-ligne") {
+          setPayment(draft.payment);
+        }
+        if (OPERATORS.some((o) => o.id === draft.operator)) {
+          setOperator(draft.operator as Operator);
+        }
+        const saved = draft.form;
+        if (saved && typeof saved === "object") {
+          const champ = (cle: string) => {
+            const valeur = (saved as Record<string, unknown>)[cle];
+            return typeof valeur === "string" ? valeur : undefined;
+          };
+          // Le brouillon ne prime que la ou il porte une valeur : sinon le
+          // pre-remplissage venant du compte resterait ecrase par du vide.
+          setForm((actuel) => ({
+            name: champ("name") || actuel.name,
+            phone: champ("phone") || actuel.phone,
+            email: champ("email") || actuel.email,
+            address: champ("address") ?? actuel.address,
+            city: champ("city") ?? actuel.city,
+            note: champ("note") ?? actuel.note,
+          }));
+        }
+      }
+    } catch {
+      // Brouillon illisible, ou stockage refuse par le navigateur (navigation
+      // privee) : on repart du formulaire vierge, ce n'est pas une erreur.
+    }
+    setDraftLoaded(true);
+  }, []);
+
+  // Sauvegarde a chaque frappe. draftLoaded garde le premier passage, sinon
+  // l'etat initial vide ecraserait le brouillon avant sa relecture.
+  useEffect(() => {
+    if (!draftLoaded) return;
+    try {
+      localStorage.setItem(CHECKOUT_DRAFT_KEY, JSON.stringify({ mode, payment, operator, form }));
+    } catch {
+      // Stockage plein ou refuse : la commande reste possible sans brouillon.
+    }
+  }, [draftLoaded, mode, payment, operator, form]);
+
+  if (!ready || !draftLoaded) {
     return <div className="h-64 animate-pulse rounded-card bg-bg-2" />;
   }
 
