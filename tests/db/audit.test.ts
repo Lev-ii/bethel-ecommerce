@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { AUDIT_PAGE_SIZE, getAuditLogs, recordAudit } from "@/lib/admin/audit";
+import { AUDIT_PAGE_SIZE, adminLoginEvents, getAuditLogs, recordAudit } from "@/lib/admin/audit";
 import { sql } from "@/lib/db/client";
 
 /**
@@ -121,3 +121,26 @@ describe("lecture", () => {
     expect((await getAuditLogs({ page: 999 })).page).toBe(2);
   });
 });
+
+describe("tentatives de connexion", () => {
+  beforeAll(async () => {
+    await purge();
+    const at = (minutesAgo: number) => sql`now() - make_interval(mins => ${minutesAgo})`;
+    const insert = (action: string, user: string, minutesAgo: number) => sql`
+      INSERT INTO audit_logs (action, entity_type, entity_id, ip, created_at)
+      VALUES (${action}, 'user', ${user}, '1.1.1.1', ${at(minutesAgo)})
+    `;
+    await insert("auth.admin_login_failed", "admin-a", 2);
+    await insert("auth.admin_login", "admin-a", 1);
+    await insert("auth.admin_login_failed", "admin-a", 30); // hors fenetre
+    await insert("auth.admin_login_failed", "admin-b", 2); // autre compte
+    await sql`INSERT INTO audit_logs (action, entity_type, entity_id, created_at) VALUES ('product.updated', 'user', 'admin-a', now())`;
+  });
+
+  it("ne lit que les connexions du compte, dans la fenetre de 15 minutes", async () => {
+    const events = await adminLoginEvents("admin-a");
+    expect(events.map((e) => e.kind).sort()).toEqual(["failure", "success"]);
+    expect(events.every((e) => e.ip === "1.1.1.1")).toBe(true);
+  });
+});
+

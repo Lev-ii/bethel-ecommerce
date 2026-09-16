@@ -3,6 +3,7 @@ import "server-only";
 import { headers } from "next/headers";
 import type { AuditAction, AuditCategory, AuditChanges } from "@/lib/admin/audit-core";
 import { actionsOf } from "@/lib/admin/audit-core";
+import { LOGIN_WINDOW_MINUTES, type LoginEvent } from "@/lib/auth/login-throttle";
 import { sql } from "@/lib/db/client";
 
 /** Client ou transaction postgres.js : l'entree s'ecrit dans la meme transaction que le changement. */
@@ -19,7 +20,8 @@ export interface AuditEntry {
   changes?: AuditChanges;
 }
 
-async function clientIp(): Promise<string | null> {
+/** Adresse du client. Sur Vercel, x-real-ip est posee par la plateforme, pas par le client. */
+export async function clientIp(): Promise<string | null> {
   try {
     const h = await headers();
     const ip = h.get("x-real-ip") ?? h.get("x-forwarded-for")?.split(",")[0]?.trim();
@@ -62,6 +64,23 @@ export async function recordAuditQuietly(entry: AuditEntry): Promise<void> {
   } catch (error) {
     console.error("[audit] entree non enregistree", entry.action, error);
   }
+}
+
+/** Tentatives de connexion recentes d'un compte administrateur, pour la limitation. */
+export async function adminLoginEvents(userId: string): Promise<LoginEvent[]> {
+  const rows = await sql<Array<{ action: string; ip: string | null; created_at: Date }>>`
+    SELECT action, ip, created_at
+    FROM audit_logs
+    WHERE entity_type = 'user'
+      AND entity_id = ${userId}
+      AND action IN ('auth.admin_login', 'auth.admin_login_failed')
+      AND created_at > now() - make_interval(mins => ${LOGIN_WINDOW_MINUTES})
+  `;
+  return rows.map((r) => ({
+    kind: r.action === "auth.admin_login" ? "success" : "failure",
+    ip: r.ip,
+    at: r.created_at,
+  }));
 }
 
 export const AUDIT_PAGE_SIZE = 30;
