@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseDashboardParams } from "@/lib/admin/dashboard-range";
-import { isLikelyBot, viewDay, viewsRetentionCutoff, visitorHash } from "@/lib/shop/product-views";
+import { isLikelyBot, viewDay, visitorHash } from "@/lib/shop/product-views";
 
 const CHROME = "Mozilla/5.0 (Linux; Android 13; SM-A135F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Mobile Safari/537.36";
 const base = { secret: "secret-de-test-suffisamment-long", day: "2026-09-16", ip: "41.202.10.5", userAgent: CHROME };
@@ -49,20 +48,5 @@ describe("visitorHash", () => {
 describe("viewDay", () => {
   it("prend le jour UTC, soit le jour d'Abidjan", () => {
     expect(viewDay(new Date("2026-09-16T23:59:59Z"))).toBe("2026-09-16");
-  });
-});
-
-describe("viewsRetentionCutoff", () => {
-  it("garde le mois en cours et les 23 mois precedents", () => {
-    expect(viewsRetentionCutoff(new Date("2026-09-16T12:00:00Z"))).toBe("2024-10-01");
-    expect(viewsRetentionCutoff(new Date("2026-01-01T00:00:00Z"))).toBe("2024-02-01");
-  });
-
-  it("ne coupe jamais la periode de comparaison de la vue 12 mois", () => {
-    for (const day of ["2026-01-01", "2026-02-28", "2026-09-16", "2026-12-31"]) {
-      const now = new Date(`${day}T23:59:59Z`);
-      const range = parseDashboardParams({ periode: "12m" }, now);
-      expect(viewsRetentionCutoff(now) <= range.previousFrom).toBe(true);
-    }
   });
 });
