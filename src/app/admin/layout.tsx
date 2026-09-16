@@ -33,7 +33,7 @@ export default async function AdminLayout({
                 Connecté en tant que{" "}
                 <span className="font-medium text-fg">{user.name}</span>
               </span>
-              <SignOutButton className="btn-outline px-3 py-1.5 text-sm" />
+              <SignOutButton className="inline-flex items-center gap-1.5 rounded-card border border-danger/40 px-3 py-1.5 text-sm font-medium text-danger transition-colors hover:bg-danger/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-danger" />
             </div>
             {children}
           </div>
