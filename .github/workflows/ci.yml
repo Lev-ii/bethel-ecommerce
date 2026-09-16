@@ -88,5 +88,8 @@ jobs:
       - name: Preparer la base
         run: npm run db:setup
 
+      - name: Historique des commandes (filtres, pagination, recherche)
+        run: npm run test:db
+
       - name: Deux clients sur le dernier exemplaire
         run: npm run test:concurrence

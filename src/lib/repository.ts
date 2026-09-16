@@ -12,7 +12,8 @@ import {
   isDatabaseUnavailableError,
 } from "@/lib/catalog-fallback";
 import { toOrder, toProduct, toUser, type OrderRow, type ProductRow, type UserRow } from "@/lib/db/rows";
-import type { Category, CategorySlug, Order, Product, User } from "@/lib/types";
+import { ORDER_PAGE_SIZE, escapeLike, type OrderFilters } from "@/lib/admin/order-filters";
+import type { Category, CategorySlug, Order, OrderStatus, Product, User } from "@/lib/types";
 
 /**
  * Point d'acces unique aux donnees.
@@ -296,6 +297,76 @@ export async function getOrders(): Promise<Order[]> {
     SELECT ${orderColumns} FROM orders o ORDER BY o.created_at DESC
   `;
   return rows.map(toOrder);
+}
+
+export interface OrderSearchResult {
+  orders: Order[];
+  /** Nombre de commandes correspondant a tous les filtres, statut compris. */
+  total: number;
+  /** Page effectivement servie : une page demandee au-dela de la derniere y est ramenee. */
+  page: number;
+  pageCount: number;
+  /**
+   * Repartition par statut sur la periode et la recherche en cours, sans tenir
+   * compte du statut choisi : les pastilles de filtre affichent ainsi ce que
+   * chaque statut donnerait.
+   */
+  countsByStatus: Partial<Record<OrderStatus, number>>;
+}
+
+/**
+ * Historique des commandes, filtre et pagine en base.
+ *
+ * Remplace le chargement de toutes les commandes suivi d'un filtre en
+ * JavaScript, qui grossissait avec chaque vente.
+ *
+ * Les bornes de periode sont des jours civils compares en UTC. Abidjan etant
+ * a UTC+0 toute l'annee, sans heure d'ete, un jour UTC est un jour local.
+ */
+export async function searchOrders(filters: OrderFilters): Promise<OrderSearchResult> {
+  const pattern = filters.query ? `%${escapeLike(filters.query)}%` : undefined;
+
+  const scope = () => sql`
+    ${filters.from ? sql`AND o.created_at >= ${filters.from}::date` : sql``}
+    ${filters.to ? sql`AND o.created_at < ${filters.to}::date + 1` : sql``}
+    ${
+      pattern
+        ? sql`AND (o.reference ILIKE ${pattern}
+                   OR o.customer_name ILIKE ${pattern}
+                   OR o.customer_phone ILIKE ${pattern})`
+        : sql``
+    }
+  `;
+
+  const counts = await sql<Array<{ status: OrderStatus; count: number }>>`
+    SELECT o.status, count(*)::int AS count
+    FROM orders o
+    WHERE TRUE ${scope()}
+    GROUP BY o.status
+  `;
+
+  const countsByStatus: Partial<Record<OrderStatus, number>> = {};
+  for (const row of counts) countsByStatus[row.status] = row.count;
+
+  const total = filters.status
+    ? (countsByStatus[filters.status] ?? 0)
+    : counts.reduce((sum, row) => sum + row.count, 0);
+  const pageCount = Math.max(1, Math.ceil(total / ORDER_PAGE_SIZE));
+  const page = Math.min(filters.page, pageCount);
+
+  const rows =
+    total === 0
+      ? []
+      : await sql<OrderRow[]>`
+          SELECT ${orderColumns}
+          FROM orders o
+          WHERE TRUE ${scope()}
+            ${filters.status ? sql`AND o.status = ${filters.status}` : sql``}
+          ORDER BY o.created_at DESC, o.id
+          LIMIT ${ORDER_PAGE_SIZE} OFFSET ${(page - 1) * ORDER_PAGE_SIZE}
+        `;
+
+  return { orders: rows.map(toOrder), total, page, pageCount, countsByStatus };
 }
 
 export interface UnseenOrders {
