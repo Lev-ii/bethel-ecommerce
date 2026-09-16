@@ -4,7 +4,7 @@ import { after } from "next/server";
 import { formatPrice, paymentMethodLabel } from "@/lib/format";
 import { getOrderByReference } from "@/lib/repository";
 import { emailProvider } from "@/lib/shop/email";
-import { invoiceFilename, invoicePath, renderInvoicePdf } from "@/lib/shop/invoice";
+import { invoiceFilename, invoicePath, renderInvoicePdf, trackingPath } from "@/lib/shop/invoice";
 import {
   WHATSAPP_TEMPLATES,
   bodyParams,
@@ -121,7 +121,7 @@ function buildMessage(order: Order, event: CustomerEvent): Message {
 }
 
 function renderEmail(order: Order, message: Message) {
-  const trackUrl = `${appUrl()}/suivi?ref=${encodeURIComponent(order.reference)}`;
+  const trackUrl = `${appUrl()}${trackingPath(order.reference)}`;
   const greeting = `Bonjour ${order.customerName},`;
   const text = [greeting, "", ...message.paragraphs, "", `Suivre la commande : ${trackUrl}`, "", "L'équipe Bethel"].join("\n");
   const html = `<!doctype html><html lang="fr"><body style="margin:0;background:#f5f4ee;font-family:Helvetica,Arial,sans-serif;color:#1a1a14">

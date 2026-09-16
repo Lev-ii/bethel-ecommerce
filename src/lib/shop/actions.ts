@@ -7,6 +7,7 @@ import { sql } from "@/lib/db/client";
 import { buildOrderReference } from "@/lib/format";
 import { notifyCustomerLater } from "@/lib/shop/notifications";
 import { paymentProvider } from "@/lib/shop/payment";
+import { invoiceToken } from "@/lib/shop/invoice";
 import { cartProblem, deliveryFeeFor, orderTotal } from "@/lib/shop/checkout";
 import { releaseExpiredReservationsQuietly } from "@/lib/shop/reservations";
 import type { PaymentMethod } from "@/lib/types";
@@ -24,6 +25,8 @@ export interface PlaceOrderInput {
 
 export interface PlaceOrderResult {
   reference?: string;
+  /** Jeton d'acces aux documents de la commande, remis a son auteur. */
+  accessToken?: string;
   total?: number;
   checkoutUrl?: string;
   /**
@@ -184,7 +187,7 @@ export async function placeOrder(
       customerAddress: input.address,
       customerCity: input.city,
       callbackUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/api/payment/ipn`,
-      returnUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/commande/confirmation?ref=${encodeURIComponent(reference)}&total=${total}&mode=${input.deliveryMode}`,
+      returnUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/commande/confirmation?ref=${encodeURIComponent(reference)}&t=${invoiceToken(reference)}&total=${total}&mode=${input.deliveryMode}`,
       cancelUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/panier?erreur=paiement&ref=${encodeURIComponent(reference)}`,
     });
 
@@ -234,5 +237,5 @@ export async function placeOrder(
   revalidatePath("/admin");
   revalidatePath("/admin/commandes");
 
-  return { reference, total, checkoutUrl, paymentPending };
+  return { reference, accessToken: invoiceToken(reference), total, checkoutUrl, paymentPending };
 }

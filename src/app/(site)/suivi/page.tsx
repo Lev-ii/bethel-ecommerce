@@ -9,7 +9,8 @@ import {
   orderStatusLabel,
 } from "@/lib/format";
 import { getOrderByReference } from "@/lib/repository";
-import { invoicePath } from "@/lib/shop/invoice";
+import { currentUser } from "@/lib/auth/current";
+import { canAccessOrderDocuments, invoicePath } from "@/lib/shop/invoice";
 import { PAYMENT_TIMEOUT_MINUTES, releaseExpiredReservationsQuietly } from "@/lib/shop/reservations";
 
 export const metadata: Metadata = {
@@ -17,7 +18,7 @@ export const metadata: Metadata = {
   description: "Retrouvez l'état de votre commande avec sa référence.",
 };
 
-type SearchParams = Promise<{ ref?: string }>;
+type SearchParams = Promise<{ ref?: string; t?: string }>;
 
 export default async function SuiviPage({
   searchParams,
@@ -28,6 +29,14 @@ export default async function SuiviPage({
   const reference = sp.ref?.trim() ?? "";
   if (reference) await releaseExpiredReservationsQuietly({ reference });
   const order = reference ? await getOrderByReference(reference) : undefined;
+  const documentsAccess = order
+    ? canAccessOrderDocuments({
+        reference: order.reference,
+        token: sp.t,
+        user: await currentUser(),
+        orderUserId: order.userId,
+      })
+    : false;
 
   return (
     <div className="shell py-10 lg:py-14">
@@ -172,12 +181,21 @@ export default async function SuiviPage({
               </span>
             </div>
             {order.paidAt || order.status === "livree" ? (
-              <a
-                href={invoicePath(order.reference)}
-                className="btn-outline mt-5 inline-flex"
-              >
-                Télécharger la facture PDF
-              </a>
+              documentsAccess ? (
+                <a
+                  href={invoicePath(order.reference)}
+                  className="btn-outline mt-5 inline-flex"
+                >
+                  Télécharger la facture PDF
+                </a>
+              ) : (
+                // La facture porte le nom, le telephone et l'adresse du client :
+                // la seule reference ne suffit pas pour l'obtenir.
+                <p className="mt-5 text-sm text-fg-2">
+                  La facture est disponible depuis le lien reçu par WhatsApp ou par email, ou
+                  depuis votre compte si la commande y est rattachée.
+                </p>
+              )
             ) : null}
           </div>
         </div>
