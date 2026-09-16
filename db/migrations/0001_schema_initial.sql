@@ -1,7 +1,13 @@
--- Schema de la base Bethel.
+-- 0001 · Schema initial de la base Bethel.
 --
--- Source de verite unique de la structure. Applique par `npm run db:setup`,
--- qui est idempotent : on peut le relancer sans rien casser.
+-- Etat de la structure au moment de l'adoption des migrations versionnees,
+-- repris de l'ancien db/schema.sql SANS sa section de "rattrapage" : ses
+-- colonnes figuraient deja dans les CREATE TABLE ci-dessous, et elle
+-- contenait un UPDATE de donnees rejoue a chaque installation.
+--
+-- NE JAMAIS EXECUTER sur une base existante : la marquer appliquee avec
+--   npm run db:migrate -- --baseline=0001
+-- Le lanceur refuse d'ailleurs de l'executer sur une base qui a deja des tables.
 --
 -- Les montants sont des entiers, dans l'unite de la devise. Le F CFA n'a pas
 -- de centimes, et on ne met jamais de flottant sur de l'argent.
@@ -138,25 +144,6 @@ CREATE TABLE IF NOT EXISTS order_lines (
 
 CREATE INDEX IF NOT EXISTS order_lines_order_idx ON order_lines (order_id);
 
--- Rattrapage des bases creees avant l'ajout du produit vedette.
-ALTER TABLE products ADD COLUMN IF NOT EXISTS is_hero BOOLEAN NOT NULL DEFAULT FALSE;
-
--- Rattrapage des bases creees avant l'ajout du message d'erreur de paiement.
-ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_error TEXT;
-
--- Rattrapage des bases creees avant l'etat 'attente_paiement'. Les commandes
--- en ligne encore impayees etaient jusque-la marquees 'recue' a tort.
-ALTER TABLE orders DROP CONSTRAINT IF EXISTS orders_status_check;
-ALTER TABLE orders ADD CONSTRAINT orders_status_check
-  CHECK (status IN ('attente_paiement','recue','preparee','expediee','livree','annulee'));
-UPDATE orders SET status = 'attente_paiement'
-WHERE status = 'recue' AND paid_at IS NULL
-  AND payment_method IN ('orange','mtn','moov','djamo','wave','mobile-money','carte');
-
--- Rattrapage des bases creees avant le suivi des commandes non lues. Le
--- DEFAULT ne s'applique qu'a la creation de la colonne : les commandes deja
--- la sont considerees comme vues, les suivantes arrivent a NULL.
-ALTER TABLE orders ADD COLUMN IF NOT EXISTS admin_seen_at TIMESTAMPTZ DEFAULT now();
-ALTER TABLE orders ALTER COLUMN admin_seen_at DROP DEFAULT;
+-- Commandes non vues en administration : pastille et flux de notifications.
 CREATE INDEX IF NOT EXISTS orders_unseen_idx ON orders (created_at DESC)
   WHERE admin_seen_at IS NULL AND status = 'recue';

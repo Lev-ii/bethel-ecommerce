@@ -1,7 +1,5 @@
 import "server-only";
 
-import fs from "node:fs";
-import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { sql } from "@/lib/db/client";
 import { categories, products } from "@/lib/data/catalog";
@@ -11,7 +9,7 @@ import { hashPassword } from "@/lib/auth/password";
 /**
  * Mise en place de la base.
  *
- * Tout est idempotent : `applySchema` et `seedDemoData` peuvent etre relances
+ * Tout est idempotent : `seedDemoData` peut etre relancee
  * sans rien casser. C'est ce qui permet de rejouer la commande apres chaque
  * deploiement sans se demander dans quel etat se trouve la base.
  */
@@ -22,11 +20,6 @@ export const SEED_ADMIN = {
   name: "Administrateur",
   password: "bethel2026",
 };
-
-export async function applySchema(): Promise<void> {
-  const file = path.join(process.cwd(), "db", "schema.sql");
-  await sql.unsafe(fs.readFileSync(file, "utf8"));
-}
 
 async function seedCategories(): Promise<void> {
   for (const [index, c] of categories.entries()) {

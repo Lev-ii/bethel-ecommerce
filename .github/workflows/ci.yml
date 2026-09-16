@@ -85,8 +85,13 @@ jobs:
       - name: Installer les dependances
         run: npm ci
 
-      - name: Preparer la base
+      - name: Preparer la base (migrations sur base neuve, puis donnees)
         run: npm run db:setup
+
+      - name: Migrations rejouables sans effet
+        run: |
+          npm run db:migrate | tee migration.log
+          grep -q "Appliquees         : aucune" migration.log
 
       - name: Historique des commandes (filtres, pagination, recherche)
         run: npm run test:db
