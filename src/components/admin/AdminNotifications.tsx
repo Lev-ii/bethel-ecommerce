@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { Bell, BellOff, BellRing, X } from "lucide-react";
+import { POPUP_MAX_ITEMS, accumulate, freshOrders, type OrderSummary } from "@/lib/admin/new-orders";
 import { formatPrice } from "@/lib/format";
 import type { UnseenOrders } from "@/lib/repository";
 
@@ -22,7 +23,6 @@ export function useUnseenOrderCount() {
   return useContext(NotificationsContext);
 }
 
-type Toast = UnseenOrders["latest"][number];
 
 const TITLE_PREFIX = /^\(\d+\)\s/;
 
@@ -51,7 +51,8 @@ export function AdminNotificationsProvider({
   children: React.ReactNode;
 }) {
   const [count, setCount] = useState(initial.count);
-  const [toast, setToast] = useState<Toast | null>(null);
+  // Fenetre des nouvelles commandes : reste ouverte jusqu'a ce que l'admin la ferme.
+  const [popup, setPopup] = useState<{ items: OrderSummary[]; total: number } | null>(null);
   const known = useRef(new Set(initial.latest.map((o) => o.id)));
   const countRef = useRef(initial.count);
   const audio = useRef<AudioContext | null>(null);
@@ -76,13 +77,13 @@ export function AdminNotificationsProvider({
     const source = new EventSource("/api/admin/commandes/flux");
     source.addEventListener("commandes", (event) => {
       const data = JSON.parse((event as MessageEvent<string>).data) as UnseenOrders;
-      const fresh = data.latest.filter((o) => !known.current.has(o.id));
+      const fresh = freshOrders(data.latest, known.current);
       data.latest.forEach((o) => known.current.add(o.id));
       setCount(data.count);
 
       if (fresh.length > 0 && data.count > countRef.current) {
         const newest = fresh[0];
-        setToast(newest);
+        setPopup((current) => accumulate(current ?? { items: [], total: 0 }, fresh));
         playChime(audio.current);
         if ("Notification" in window && Notification.permission === "granted") {
           const notification = new Notification(
@@ -104,12 +105,6 @@ export function AdminNotificationsProvider({
     });
     return () => source.close();
   }, []);
-
-  useEffect(() => {
-    if (!toast) return;
-    const timer = setTimeout(() => setToast(null), 10_000);
-    return () => clearTimeout(timer);
-  }, [toast]);
 
   // Compteur dans le titre de l'onglet, reapplique quand Next change le
   // titre en naviguant.
@@ -143,34 +138,58 @@ export function AdminNotificationsProvider({
   return (
     <NotificationsContext.Provider value={{ count, markSeen, clear }}>
       {children}
-      {toast ? (
+      {popup ? (
         <div
-          role="status"
-          className="fixed bottom-5 right-5 z-50 w-[min(22rem,calc(100vw-2.5rem))] rounded-card border border-line bg-bg p-4 shadow-lg"
+          role="alert"
+          aria-labelledby="popup-commandes-titre"
+          className="fixed bottom-5 right-5 z-50 w-[min(24rem,calc(100vw-2.5rem))] animate-rise-in overflow-hidden rounded-card border-2 border-brand bg-bg text-fg shadow-xl"
         >
-          <div className="flex items-start gap-3">
-            <BellRing size={18} aria-hidden className="mt-0.5 shrink-0 text-brand-deep" />
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold">Nouvelle commande</p>
-              <p className="mt-0.5 truncate text-sm text-fg-2">
-                <span className="tabular">{toast.reference}</span> · {toast.customerName}
-              </p>
-              <p className="tabular text-sm font-semibold">{formatPrice(toast.total)}</p>
-              <Link
-                href="/admin/commandes"
-                onClick={() => setToast(null)}
-                className="mt-2 inline-block text-sm underline underline-offset-4"
-              >
-                Voir les commandes
-              </Link>
-            </div>
+          <div className="flex items-center justify-between gap-3 bg-brand px-4 py-2.5 text-brand-ink">
+            <p id="popup-commandes-titre" className="flex items-center gap-2 text-sm font-semibold">
+              <BellRing size={17} aria-hidden />
+              {popup.total > 1 ? `${popup.total} nouvelles commandes` : "Nouvelle commande"}
+            </p>
             <button
               type="button"
-              onClick={() => setToast(null)}
+              onClick={() => setPopup(null)}
               aria-label="Fermer"
-              className="text-fg-3 hover:text-fg"
+              className="rounded-card p-1 text-brand-ink/70 transition-colors hover:bg-brand-ink/10 hover:text-brand-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-ink"
             >
               <X size={16} aria-hidden />
+            </button>
+          </div>
+
+          <ul className="divide-y divide-line">
+            {popup.items.map((order) => (
+              <li key={order.id} className="flex items-baseline justify-between gap-3 px-4 py-2.5">
+                <div className="min-w-0">
+                  <p className="tabular text-sm font-semibold">{order.reference}</p>
+                  <p className="break-words text-xs text-fg-2">{order.customerName}</p>
+                </div>
+                <p className="tabular shrink-0 text-sm font-semibold">{formatPrice(order.total)}</p>
+              </li>
+            ))}
+          </ul>
+          {popup.total > POPUP_MAX_ITEMS ? (
+            <p className="border-t border-line px-4 py-2 text-xs text-fg-3">
+              et {popup.total - POPUP_MAX_ITEMS} autre{popup.total - POPUP_MAX_ITEMS > 1 ? "s" : ""}
+            </p>
+          ) : null}
+
+          <div className="flex flex-wrap items-center gap-2 border-t border-line px-4 py-3">
+            <Link
+              href={
+                popup.total === 1
+                  ? `/admin/commandes?q=${encodeURIComponent(popup.items[0].reference)}`
+                  : "/admin/commandes?etat=recue"
+              }
+              onClick={() => setPopup(null)}
+              className="btn-accent px-3 py-1.5 text-sm"
+            >
+              {popup.total === 1 ? "Voir la commande" : "Voir les commandes"}
+            </Link>
+            <button type="button" onClick={() => setPopup(null)} className="btn-ghost px-3 py-1.5 text-sm">
+              Plus tard
             </button>
           </div>
         </div>
