@@ -1,6 +1,7 @@
 "use server";
 
-import { recordAuditQuietly } from "@/lib/admin/audit";
+import { adminLoginEvents, clientIp, recordAuditQuietly } from "@/lib/admin/audit";
+import { loginLocked } from "@/lib/auth/login-throttle";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
@@ -74,6 +75,20 @@ export async function signIn(formData: FormData) {
   } catch {
     // Une panne de base ne doit jamais ressembler a un mauvais mot de passe.
     redirect(`/connexion?erreur=service${back}`);
+  }
+
+  // Limitation verifiee AVANT le mot de passe : pendant un blocage, meme le bon
+  // mot de passe est refuse, sinon le blocage ne ralentirait rien.
+  if (user?.role === "ADMIN") {
+    const ip = await clientIp();
+    let locked = false;
+    try {
+      locked = loginLocked(await adminLoginEvents(user.id), ip, new Date());
+    } catch (error) {
+      // Meme base que la connexion : une panne ici ferait deja echouer le reste.
+      console.error("[auth] verification des tentatives impossible", error);
+    }
+    if (locked) redirect(`/connexion?erreur=bloque${back}`);
   }
 
   // Meme message dans les deux cas : distinguer les deux reviendrait a dire
