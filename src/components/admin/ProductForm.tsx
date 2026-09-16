@@ -72,7 +72,7 @@ export function ProductForm({
           <Field
             id="name"
             name="name"
-            label="Nom du materiel"
+            label="Nom du matériel"
             required
             defaultValue={product?.name}
             error={errorFor("name")}
@@ -124,8 +124,8 @@ export function ProductForm({
             required
             defaultValue={product?.headline}
             error={errorFor("headline")}
-            hint="Une ligne, affichee sous le nom dans le catalogue."
-            placeholder="Pied 2 m, support telephone, trois temperatures"
+            hint="Une ligne, affichée sous le nom dans le catalogue."
+            placeholder="Pied 2 m, support téléphone, trois températures"
             className="sm:col-span-2"
           />
 
@@ -260,18 +260,18 @@ export function ProductForm({
           <Field
             id="compareAtPrice"
             name="compareAtPrice"
-            label="Prix barre"
+            label="Prix barré"
             type="number"
             min={0}
             step={500}
             defaultValue={product?.compareAtPrice}
             error={errorFor("compareAtPrice")}
-            hint="A remplir seulement en cas de promotion."
+            hint="À remplir seulement en cas de promotion."
           />
           <Field
             id="stock"
             name="stock"
-            label="Quantite en stock"
+            label="Quantité en stock"
             type="number"
             required
             min={0}
@@ -297,7 +297,7 @@ export function ProductForm({
           <div>
             <h2 className="text-lg">Fiche technique</h2>
             <p className="mt-1 text-sm text-fg-2">
-              Les caracteristiques affichees sur la page du produit.
+              Les caractéristiques affichées sur la page du produit.
             </p>
           </div>
           <button
@@ -333,7 +333,7 @@ export function ProductForm({
                 }
                 disabled={specs.length <= 1}
                 className="btn-ghost shrink-0 disabled:opacity-30"
-                aria-label={`Retirer la caracteristique ${index + 1}`}
+                aria-label={`Retirer la caractéristique ${index + 1}`}
               >
                 <Trash2 size={16} aria-hidden />
               </button>
@@ -342,7 +342,7 @@ export function ProductForm({
         </ul>
 
         <p className="mt-3 text-sm text-fg-3">
-          Les lignes laissees vides ne sont pas enregistrees.
+          Les lignes laissées vides ne sont pas enregistrées.
         </p>
       </section>
 
@@ -353,28 +353,28 @@ export function ProductForm({
           id="published"
           name="published"
           label="Visible dans la boutique"
-          hint="Decochez pour preparer une fiche sans la mettre en ligne."
+          hint="Décochez pour préparer une fiche sans la mettre en ligne."
           defaultChecked={product ? product.published : true}
         />
         <Checkbox
           id="featured"
           name="featured"
           label="Mettre en avant sur l'accueil"
-          hint="Apparait dans la selection en bas de la page d'accueil."
+          hint="Apparaît dans la sélection en bas de la page d'accueil."
           defaultChecked={product?.featured ?? false}
         />
         <Checkbox
           id="isHero"
           name="isHero"
           label="Produit vedette de l'accueil"
-          hint="Occupe la grande fiche technique en haut de page. Un seul produit a la fois : cocher ici le retire au precedent."
+          hint="Occupe la grande fiche technique en haut de page. Un seul produit à la fois : cocher ici le retire au précédent."
           defaultChecked={product?.isHero ?? false}
         />
       </section>
 
       <div className="flex flex-wrap gap-3">
         <SubmitButton pendingLabel="Enregistrement...">
-          {isEdit ? "Enregistrer les modifications" : "Ajouter le materiel"}
+          {isEdit ? "Enregistrer les modifications" : "Ajouter le matériel"}
         </SubmitButton>
         <Link href="/admin/produits" className="btn-outline">
           Annuler

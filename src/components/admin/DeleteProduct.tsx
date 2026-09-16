@@ -26,11 +26,11 @@ export function DeleteProduct({ id, name }: { id: string; name: string }) {
       <div className="flex items-start gap-3">
         <AlertTriangle size={18} aria-hidden className="mt-0.5 text-danger" />
         <div className="min-w-0 flex-1">
-          <h2 className="text-lg">Supprimer ce materiel</h2>
+          <h2 className="text-lg">Supprimer ce matériel</h2>
           <p className="mt-1 text-sm text-fg-2">
-            La fiche disparait de la boutique et de l&apos;administration. Les
-            commandes deja passees gardent le nom et le prix pratiques ce
-            jour-la.
+            La fiche disparaît de la boutique et de l&apos;administration. Les
+            commandes déjà passées gardent le nom et le prix pratiqués ce
+            jour-là.
           </p>
 
           <details className="group mt-4">
@@ -65,7 +65,7 @@ export function DeleteProduct({ id, name }: { id: string; name: string }) {
                       : "cursor-not-allowed bg-bg-3 text-fg-3"
                   }`}
                 >
-                  Supprimer definitivement
+                  Supprimer définitivement
                 </SubmitButton>
               </div>
 

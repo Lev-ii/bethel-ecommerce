@@ -18,7 +18,7 @@ export function AddToCart({ product }: { product: Product }) {
           Epuise
         </button>
         <p className="text-sm text-fg-2">
-          Ce produit est en rupture. Appelez la boutique pour connaitre la date
+          Ce produit est en rupture. Appelez la boutique pour connaître la date
           du prochain arrivage.
         </p>
       </div>
@@ -76,7 +76,7 @@ export function AddToCart({ product }: { product: Product }) {
           {added ? (
             <>
               <Check size={17} aria-hidden className="shrink-0" />{" "}
-              <span className="min-w-0 truncate">Ajoute au panier</span>
+              <span className="min-w-0 truncate">Ajouté au panier</span>
             </>
           ) : (
             <>

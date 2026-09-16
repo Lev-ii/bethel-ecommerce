@@ -60,7 +60,7 @@ export async function verifyPassword(
 /** Regles minimales, verifiees cote serveur et rappelees dans le formulaire. */
 export function passwordProblem(password: string): string | null {
   if (password.length < 8) {
-    return "Le mot de passe doit faire au moins 8 caracteres.";
+    return "Le mot de passe doit faire au moins 8 caractères.";
   }
   if (!/[a-zA-Z]/.test(password) || !/[0-9]/.test(password)) {
     return "Le mot de passe doit contenir au moins une lettre et un chiffre.";

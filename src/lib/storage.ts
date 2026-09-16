@@ -82,13 +82,13 @@ export async function saveProductImage(
   // La taille est verifiee avant la lecture : inutile de charger 200 Mo en
   // memoire pour les refuser ensuite.
   if (file.size > MAX_BYTES) {
-    throw new UploadError("L'image depasse 3 Mo.");
+    throw new UploadError("L'image dépasse 3 Mo.");
   }
 
   const bytes = Buffer.from(await file.arrayBuffer());
   const format = detectImage(bytes);
   if (!format) {
-    throw new UploadError("Format d'image non accepte. Utilise un fichier PNG, JPEG ou WebP.");
+    throw new UploadError("Format d'image non accepté. Utilise un fichier PNG, JPEG ou WebP.");
   }
 
   const objectPath = `${productId}/${randomUUID()}.${format.extension}`;
@@ -98,9 +98,9 @@ export async function saveProductImage(
   if (!client) {
     if (process.env.NODE_ENV === "production") {
       console.warn(
-        "[storage] SUPABASE_URL et SUPABASE_SERVICE_KEY ne sont pas definis. " +
-          "Les photos sont ecrites sur le disque local, ce qui ne fonctionne " +
-          "pas sur un hebergement dont le disque est en lecture seule."
+        "[storage] SUPABASE_URL et SUPABASE_SERVICE_KEY ne sont pas définis. " +
+          "Les photos sont écrites sur le disque local, ce qui ne fonctionne " +
+          "pas sur un hébergement dont le disque est en lecture seule."
       );
     }
     const target = path.join(MEDIA_DIR, objectPath);

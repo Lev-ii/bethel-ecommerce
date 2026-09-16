@@ -18,7 +18,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { id } = await params;
   const product = await getProductById(id);
-  return { title: product ? product.name : "Materiel introuvable" };
+  return { title: product ? product.name : "Matériel introuvable" };
 }
 
 export default async function ModifierProduitPage({
@@ -46,7 +46,7 @@ export default async function ModifierProduitPage({
         <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
           <div>
             <h1 className="text-3xl">{product.name}</h1>
-            <p className="mt-2 text-fg-2">Modifier la fiche du materiel.</p>
+            <p className="mt-2 text-fg-2">Modifier la fiche du matériel.</p>
           </div>
           {product.published ? (
             <Link

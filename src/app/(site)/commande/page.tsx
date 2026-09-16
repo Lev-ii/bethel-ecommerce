@@ -41,7 +41,7 @@ export default async function CommandePage() {
             >
               Se connecter
             </Link>{" "}
-            remplit vos coordonnees et garde la commande dans votre historique.
+            remplit vos coordonnées et garde la commande dans votre historique.
           </p>
         ) : null}
       </header>

@@ -11,8 +11,8 @@ export function Footer({ isAdmin = false }: { isAdmin?: boolean }) {
         <div className="space-y-3">
           <Logo href={null} className="h-7" variant="dark" />
           <p className="max-w-xs text-sm text-[#46443c]">
-            Le materiel des createurs de contenu, disponible sur place. Choisi,
-            teste, livre ici.
+            Le matériel des créateurs de contenu, disponible sur place. Choisi,
+            testé, livré ici.
           </p>
         </div>
 

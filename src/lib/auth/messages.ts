@@ -19,17 +19,17 @@ export const authErrorMessages: Record<AuthErrorReason, string> = {
   champs: "Entrez votre email et votre mot de passe.",
   email: "Cette adresse email n'est pas valide.",
   motdepasse:
-    "Le mot de passe doit faire au moins 8 caracteres, avec une lettre et un chiffre.",
-  existe: "Un compte existe deja avec cette adresse.",
+    "Le mot de passe doit faire au moins 8 caractères, avec une lettre et un chiffre.",
+  existe: "Un compte existe déjà avec cette adresse.",
   nom: "Indiquez votre nom complet.",
-  service: "Service momentanement indisponible. Reessayez dans un instant.",
-  bloque: "Trop de tentatives de connexion. Reessayez dans 15 minutes.",
+  service: "Service momentanément indisponible. Réessayez dans un instant.",
+  bloque: "Trop de tentatives de connexion. Réessayez dans 15 minutes.",
 };
 
 export function authErrorMessage(reason?: string): string | undefined {
   if (!reason) return undefined;
   return (
     authErrorMessages[reason as AuthErrorReason] ??
-    "L'operation a echoue. Reessayez."
+    "L'opération a échoué. Réessayez."
   );
 }

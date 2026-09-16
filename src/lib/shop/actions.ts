@@ -207,7 +207,7 @@ export async function placeOrder(
     // le debug admin (voir OrdersTable), le client ne voit qu'un message
     // generique.
     const technicalMessage = error instanceof Error ? error.message : String(error);
-    console.error("[placeOrder] paiement echoue", { orderId, reference }, technicalMessage);
+    console.error("[placeOrder] paiement échoué", { orderId, reference }, technicalMessage);
 
     await sql.begin(async (tx) => {
       for (const line of lines) {

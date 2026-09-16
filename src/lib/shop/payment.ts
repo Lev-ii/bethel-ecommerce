@@ -95,7 +95,7 @@ export async function confirmJekoTransaction(paymentRequestId: string): Promise<
     }
 
     if (!response.ok) {
-      console.error("[jeko:confirm] echec de verification du paiement", paymentRequestId, body);
+      console.error("[jeko:confirm] échec de vérification du paiement", paymentRequestId, body);
       return null;
     }
 
@@ -113,7 +113,7 @@ export async function confirmJekoTransaction(paymentRequestId: string): Promise<
       raw: body,
     };
   } catch (error) {
-    console.error("[jeko:confirm] echec de verification du paiement", paymentRequestId, error);
+    console.error("[jeko:confirm] échec de vérification du paiement", paymentRequestId, error);
     return null;
   }
 }

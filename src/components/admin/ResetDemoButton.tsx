@@ -24,8 +24,8 @@ export function ResetDemoButton() {
           className="field"
         />
       </div>
-      <SubmitButton pendingLabel="Remise a zero..." className="btn-outline">
-        <RotateCcw size={15} aria-hidden /> Reinitialiser la demo
+      <SubmitButton pendingLabel="Remise à zéro..." className="btn-outline">
+        <RotateCcw size={15} aria-hidden /> Réinitialiser la démo
       </SubmitButton>
     </form>
   );

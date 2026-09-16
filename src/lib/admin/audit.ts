@@ -62,7 +62,7 @@ export async function recordAuditQuietly(entry: AuditEntry): Promise<void> {
   try {
     await recordAudit(sql, entry);
   } catch (error) {
-    console.error("[audit] entree non enregistree", entry.action, error);
+    console.error("[audit] entrée non enregistrée", entry.action, error);
   }
 }
 

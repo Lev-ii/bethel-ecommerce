@@ -39,7 +39,7 @@ export async function requireUser(suite = "/compte"): Promise<SessionUser> {
 export async function assertAdmin(): Promise<SessionUser> {
   const user = await currentUser();
   if (!user || user.role !== "ADMIN") {
-    throw new Error("Action reservee a l'administration.");
+    throw new Error("Action réservée à l'administration.");
   }
   return user;
 }
