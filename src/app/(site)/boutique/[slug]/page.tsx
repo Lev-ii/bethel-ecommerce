@@ -1,3 +1,4 @@
+import { ProductViewBeacon } from "@/components/product/ProductViewBeacon";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -50,6 +51,7 @@ export default async function ProduitPage({ params }: { params: Params }) {
 
   return (
     <div className="shell py-8 lg:py-12">
+      <ProductViewBeacon productId={product.id} />
       <nav aria-label="Fil d'Ariane" className="mb-8">
         <ol className="flex flex-wrap items-center gap-1 text-sm text-fg-3">
           <li>

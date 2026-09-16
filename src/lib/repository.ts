@@ -321,6 +321,8 @@ export interface DashboardStats {
   /** Tous les statuts, dans l'ordre du cycle de vie, zeros compris. */
   statuses: Array<{ status: OrderStatus; count: number }>;
   topProducts: Array<{ productId: string; name: string; quantity: number; revenue: number }>;
+  /** Visiteurs distincts par jour, cumules sur la periode. */
+  topViewed: Array<{ productId: string; name: string; views: number }>;
 }
 
 const STATUS_ORDER: OrderStatus[] = [
@@ -411,9 +413,20 @@ export async function getDashboardStats(range: DashboardRange): Promise<Dashboar
     LIMIT 8
   `;
 
+  const topViewed = await sql<DashboardStats["topViewed"]>`
+    SELECT v.product_id AS "productId", p.name, count(*)::int AS views
+    FROM product_views v
+    JOIN products p ON p.id = v.product_id
+    WHERE v.day >= ${range.from}::date AND v.day <= ${range.to}::date
+    GROUP BY v.product_id, p.name
+    ORDER BY views DESC, p.name
+    LIMIT 8
+  `;
+
   return {
     current,
     previous,
+    topViewed: [...topViewed],
     totals: { current: sum(current), previous: sum(previous) },
     statuses: STATUS_ORDER.map((status) => ({ status, count: byStatus.get(status) ?? 0 })),
     topProducts: [...topProducts],

@@ -6,7 +6,7 @@
  */
 
 export type PeriodKey = "7j" | "30j" | "90j" | "12m";
-export type DashboardView = "ensemble" | "ca" | "statuts" | "produits";
+export type DashboardView = "ensemble" | "ca" | "statuts" | "produits" | "vues";
 export type Bucket = "day" | "week" | "month";
 
 interface PeriodDef {
@@ -30,6 +30,7 @@ export const VIEWS: ReadonlyArray<{ key: DashboardView; label: string }> = [
   { key: "ca", label: "Chiffre d'affaires" },
   { key: "statuts", label: "Commandes par statut" },
   { key: "produits", label: "Produits les plus vendus" },
+  { key: "vues", label: "Produits les plus vus" },
 ];
 
 export const DEFAULT_PERIOD: PeriodKey = "30j";

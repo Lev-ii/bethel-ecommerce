@@ -34,6 +34,7 @@ async function order(at: string, status: string, total: number, lines: Array<[st
 
 async function purge() {
   await sql`DELETE FROM orders WHERE reference LIKE ${`${PREFIX}%`}`;
+  await sql`DELETE FROM product_views WHERE day < '2006-01-01'`;
 }
 
 beforeAll(async () => {
@@ -137,3 +138,27 @@ describe("periode de 12 mois, par mois civil", () => {
     expect(stats.previous.map((p) => p.revenue)).toEqual([300, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 400]);
   });
 });
+
+describe("produits les plus vus", () => {
+  const range = parseDashboardParams({ periode: "7j" }, new Date("2005-03-10T15:00:00Z"));
+
+  beforeAll(async () => {
+    const view = (product: string, day: string, visitor: string) =>
+      sql`INSERT INTO product_views (product_id, day, visitor_hash) VALUES (${product}, ${day}, ${visitor}) ON CONFLICT DO NOTHING`;
+    await view(productA, "2005-03-04", "v1");
+    await view(productA, "2005-03-04", "v1"); // doublon du meme jour : ignore
+    await view(productA, "2005-03-05", "v1"); // meme visiteur, autre jour : compte
+    await view(productA, "2005-03-10", "v2");
+    await view(productB, "2005-03-10", "v3");
+    await view(productB, "2005-03-11", "v4"); // hors periode
+  });
+
+  it("compte un visiteur par jour et classe par nombre de vues", async () => {
+    const stats = await getDashboardStats(range);
+    expect(stats.topViewed.map((p) => [p.productId, p.views])).toEqual([
+      [productA, 3],
+      [productB, 1],
+    ]);
+  });
+});
+
