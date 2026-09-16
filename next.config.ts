@@ -13,6 +13,9 @@ const supabaseHost = process.env.SUPABASE_URL
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  // Les tests de parcours construisent le site dans un dossier a part, pour ne
+  // jamais ecraser celui d'un "next dev" ouvert en parallele.
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   images: {
     remotePatterns: supabaseHost
       ? [
