@@ -3,6 +3,7 @@ import {
   buildOrderReference,
   canAdvanceOrder,
   discountPercent,
+  orderStatusChange,
   stockState,
 } from "@/lib/format";
 import type { Order, Product } from "@/lib/types";
@@ -85,5 +86,37 @@ describe("discountPercent", () => {
 
   it("ne renvoie rien si le prix barre n'est pas superieur", () => {
     expect(discountPercent(product({ price: 10000, compareAtPrice: 9000 }))).toBeNull();
+  });
+});
+
+describe("orderStatusChange", () => {
+  it.each([
+    ["recue", "preparee"],
+    ["recue", "livree"],
+    ["preparee", "expediee"],
+    ["expediee", "livree"],
+    ["attente_paiement", "recue"],
+    ["attente_paiement", "preparee"],
+  ] as const)("avance de %s a %s, client prevenu", (from, to) => {
+    expect(orderStatusChange(from, to)).toBe("avance");
+  });
+
+  it.each([
+    ["preparee", "recue"],
+    ["expediee", "preparee"],
+  ] as const)("corrige de %s a %s, sans prevenir le client", (from, to) => {
+    expect(orderStatusChange(from, to)).toBe("correction");
+  });
+
+  it.each([
+    ["livree", "recue"],
+    ["livree", "expediee"],
+    ["expediee", "recue"],
+    ["recue", "recue"],
+    ["annulee", "recue"],
+    ["recue", "annulee"],
+    ["recue", "attente_paiement"],
+  ] as const)("refuse de %s a %s", (from, to) => {
+    expect(orderStatusChange(from, to)).toBeNull();
   });
 });
