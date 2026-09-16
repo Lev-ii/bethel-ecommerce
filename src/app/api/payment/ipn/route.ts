@@ -1,26 +1,8 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
+import { isValidJekoSignature } from "@/lib/shop/jeko-signature";
 import { syncOrderPayment } from "@/lib/shop/payment";
 
 export const runtime = "nodejs";
-
-/**
- * Verifie l'en-tete Jeko-Signature (HMAC-SHA256 du corps brut, en hexadecimal
- * minuscule, voir developer.jeko.africa/docs/webhooks/integration). Si aucun
- * secret n'est configure, on ne verifie pas la signature - la relecture du
- * statut chez Jeko (syncOrderPayment) reste la vraie source de verite.
- */
-function isValidJekoSignature(rawBody: string, signatureHeader: string | null): boolean {
-  const secret = process.env.JEKO_WEBHOOK_SECRET;
-  if (!secret) return true;
-  if (!signatureHeader) return false;
-
-  const expected = createHmac("sha256", secret).update(rawBody).digest("hex");
-  const expectedBuf = Buffer.from(expected, "utf8");
-  const actualBuf = Buffer.from(signatureHeader.trim().toLowerCase(), "utf8");
-  if (expectedBuf.length !== actualBuf.length) return false;
-  return timingSafeEqual(expectedBuf, actualBuf);
-}
 
 function asString(value: unknown): string | undefined {
   if (value == null) return undefined;
@@ -42,7 +24,11 @@ export async function POST(request: NextRequest) {
     const rawBody = await request.text();
 
     if (!isValidJekoSignature(rawBody, request.headers.get("Jeko-Signature"))) {
-      console.warn("[payment:ipn] signature Jeko invalide ou absente");
+      console.warn(
+        process.env.JEKO_WEBHOOK_SECRET
+          ? "[payment:ipn] signature Jeko invalide ou absente"
+          : "[payment:ipn] JEKO_WEBHOOK_SECRET absent en production : webhook refuse"
+      );
       return NextResponse.json({ ok: false, error: "Invalid signature." }, { status: 401 });
     }
 
