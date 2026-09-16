@@ -5,6 +5,7 @@ import { ChartFrame, LegendKey } from "@/components/admin/charts/ChartFrame";
 import { RevenueChart, type RevenuePoint } from "@/components/admin/charts/RevenueChart";
 import { ResetDemoButton } from "@/components/admin/ResetDemoButton";
 import { delta } from "@/lib/admin/chart-scale";
+import { demoResetAllowed } from "@/lib/admin/demo-reset";
 import {
   PERIODS,
   VIEWS,
@@ -63,7 +64,7 @@ export async function Dashboard({ range }: { range: DashboardRange }) {
           <p className="eyebrow">Vue d&apos;ensemble</p>
           <h1 className="mt-2 text-3xl">Tableau de bord</h1>
         </div>
-        <ResetDemoButton />
+        {demoResetAllowed() ? <ResetDemoButton /> : null}
       </header>
 
       <section aria-labelledby="maintenant" className="space-y-3">

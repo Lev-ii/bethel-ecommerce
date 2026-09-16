@@ -3,6 +3,7 @@
 import { randomUUID } from "node:crypto";
 import { redirect } from "next/navigation";
 import { revalidatePath, revalidateTag } from "next/cache";
+import { assertDemoResetAllowed } from "@/lib/admin/demo-reset";
 import { assertAdmin } from "@/lib/auth/current";
 import { sql } from "@/lib/db/client";
 import { deleteProductImageFile, deleteProductImages, saveProductImage, UploadError } from "@/lib/storage";
@@ -418,8 +419,11 @@ export async function markAllOrdersSeen() {
   revalidatePath("/admin/commandes");
 }
 
-export async function resetDemo() {
+export async function resetDemo(formData: FormData) {
   await assertAdmin();
+  // Verifie cote serveur : masquer le bouton ne suffit pas, une action serveur
+  // reste appelable directement.
+  assertDemoResetAllowed(formData.get("confirmation"));
   const { seedDemoData } = await import("@/lib/db/seed");
   await seedDemoData({ force: true });
   refreshCatalog();
