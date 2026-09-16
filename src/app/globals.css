@@ -30,6 +30,13 @@
     --warn: 141 96 12;
     --danger: 163 58 44;
 
+    /* Graphiques. Bleu : extremite froide de la barre Kelvin, pris dans la
+       palette de reference validee. Gris chaud : periode de comparaison, lu
+       comme du contexte. Paire validee (separation daltonisme, contraste
+       >= 3:1 sur --bg). Jamais un etat : ok/warn/danger restent reserves. */
+    --viz-accent: 42 120 214;
+    --viz-context: 143 139 126;
+
     --sidebar: 22 21 15;
     --sidebar-fg: 244 243 237;
 
@@ -70,6 +77,9 @@
     --ok: 111 203 140;
     --warn: 226 180 74;
     --danger: 240 138 124;
+
+    --viz-accent: 57 135 229;
+    --viz-context: 122 119 108;
 
     --sidebar: 22 22 19;
     --sidebar-fg: 244 243 237;
