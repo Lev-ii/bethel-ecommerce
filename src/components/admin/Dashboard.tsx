@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AlertTriangle, ArrowDownRight, ArrowRight, ArrowUpRight, Minus } from "lucide-react";
+import { AlertOctagon, AlertTriangle, ArrowDownRight, ArrowRight, ArrowUpRight, Minus } from "lucide-react";
 import { BarChart, type BarItem } from "@/components/admin/charts/BarChart";
 import { ChartFrame, LegendKey } from "@/components/admin/charts/ChartFrame";
 import { RevenueChart, type RevenuePoint } from "@/components/admin/charts/RevenueChart";
@@ -52,6 +52,7 @@ export async function Dashboard({ range }: { range: DashboardRange }) {
   const stats = await getDashboardStats(range);
 
   const alerts = products.filter((p) => p.published && stockState(p) !== "in");
+  const soldOut = alerts.filter((p) => p.stock === 0).length;
   const names = seriesNames(range);
   const comparison = periodDef(range.period).previousLabel;
   const { current, previous } = stats.totals;
@@ -73,10 +74,27 @@ export async function Dashboard({ range }: { range: DashboardRange }) {
           <Tile
             label="Commandes à traiter"
             value={String(toProcess)}
-            highlight={toProcess > 0}
+            tone={toProcess > 0 ? "brand" : undefined}
+            detail={toProcess > 0 ? "Reçues ou préparées, à faire avancer" : "Rien en attente"}
             href={toProcess > 0 ? "/admin/commandes?etat=recue" : undefined}
           />
-          <Tile label="Alertes stock" value={String(alerts.length)} highlight={alerts.length > 0} />
+          <Tile
+            label="Alertes stock"
+            value={String(alerts.length)}
+            // Rouge des qu'un produit en ligne est epuise : il ne se vend plus.
+            // Ambre tant qu'il reste du stock, meme sous le seuil d'alerte.
+            tone={soldOut > 0 ? "danger" : alerts.length > 0 ? "warn" : undefined}
+            detail={
+              alerts.length === 0
+                ? "Tous les produits au-dessus du seuil"
+                : [
+                    soldOut > 0 ? `${soldOut} épuisé${soldOut > 1 ? "s" : ""}` : null,
+                    alerts.length - soldOut > 0 ? `${alerts.length - soldOut} sous le seuil` : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")
+            }
+          />
         </div>
       </section>
 
@@ -302,30 +320,60 @@ function Segmented({
   );
 }
 
+type TileTone = "brand" | "warn" | "danger";
+
+/**
+ * Tons des tuiles. Le jaune plein signale une action a faire. Ambre et rouge
+ * sont des etats : ils passent par une bordure pleine et un chiffre colore,
+ * car une teinte legere du fond se confond avec la page en mode jour. Un
+ * libelle et une icone accompagnent toujours la couleur.
+ */
+const TILE_TONES: Record<TileTone, { card: string; value: string; label: string; detail: string }> = {
+  brand: {
+    card: "border-brand bg-brand text-brand-ink",
+    value: "text-brand-ink",
+    label: "text-brand-ink/70",
+    detail: "text-brand-ink/80",
+  },
+  warn: { card: "border-warn bg-bg", value: "text-warn", label: "text-warn", detail: "text-fg-2" },
+  danger: { card: "border-danger bg-bg", value: "text-danger", label: "text-danger", detail: "text-fg-2" },
+};
+
 function Tile({
   label,
   value,
-  highlight,
+  tone,
+  detail,
   href,
   trend,
 }: {
   label: string;
   value: string;
-  highlight?: boolean;
+  tone?: TileTone;
+  detail?: string;
   href?: string;
   trend?: { current: number; previous: number; comparison: string };
 }) {
+  const style = tone ? TILE_TONES[tone] : null;
+  const Icon = tone === "danger" ? AlertOctagon : tone === "warn" ? AlertTriangle : null;
   const body = (
     <>
-      <p className="eyebrow">{label}</p>
+      <p className={`eyebrow flex items-center gap-1.5 ${style?.label ?? ""}`}>
+        {Icon ? <Icon size={13} aria-hidden /> : null}
+        {label}
+      </p>
       {/* Chiffres proportionnels : tabular-nums ecarte les grands nombres. */}
-      <p className="mt-2 text-2xl font-semibold">{value}</p>
+      <p className={`mt-2 text-2xl font-semibold ${style?.value ?? ""}`}>{value}</p>
+      {detail ? <p className={`mt-1 text-xs ${style?.detail ?? "text-fg-3"}`}>{detail}</p> : null}
       {trend ? <Trend {...trend} /> : null}
     </>
   );
-  const className = `card block p-5 ${highlight ? "border-brand bg-brand/10" : ""}`;
+  const className = `card block p-5 ${style?.card ?? ""}`;
   return href ? (
-    <Link href={href} className={`${className} transition-colors hover:border-fg-3`}>
+    <Link
+      href={href}
+      className={`${className} transition-[filter,border-color] hover:brightness-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fg`}
+    >
       {body}
     </Link>
   ) : (
