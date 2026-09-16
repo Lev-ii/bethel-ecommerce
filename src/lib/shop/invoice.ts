@@ -26,6 +26,28 @@ export function invoicePath(reference: string): string {
   return `/api/commande/${encodeURIComponent(reference)}/facture?t=${invoiceToken(reference)}`;
 }
 
+/** Lien de suivi portant le jeton : il donne acces a la facture depuis la page de suivi. */
+export function trackingPath(reference: string): string {
+  return `/suivi?ref=${encodeURIComponent(reference)}&t=${invoiceToken(reference)}`;
+}
+
+/**
+ * Qui peut voir les documents d'une commande (facture, donc nom, telephone et
+ * adresse) : le porteur du lien signe recu apres commande, le client connecte
+ * a qui elle appartient, ou un administrateur. Connaitre la reference ne
+ * suffit pas : elle est courte et circule.
+ */
+export function canAccessOrderDocuments(input: {
+  reference: string;
+  token: string | null | undefined;
+  user: { id: string; role: string } | null;
+  orderUserId?: string;
+}): boolean {
+  if (invoiceTokenIsValid(input.reference, input.token ?? null)) return true;
+  if (!input.user) return false;
+  return input.user.role === "ADMIN" || (Boolean(input.orderUserId) && input.user.id === input.orderUserId);
+}
+
 export function invoiceTokenIsValid(reference: string, token: string | null): boolean {
   if (!token) return false;
   const expected = Buffer.from(invoiceToken(reference), "utf8");

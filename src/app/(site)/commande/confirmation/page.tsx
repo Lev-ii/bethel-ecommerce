@@ -5,18 +5,24 @@ import { CheckCircle2 } from "lucide-react";
 import { ClearCartOnMount } from "@/components/cart/ClearCartOnMount";
 import { Eyebrow, KelvinBar } from "@/components/ui/Primitives";
 import { formatPrice } from "@/lib/format";
-import { invoicePath } from "@/lib/shop/invoice";
+import { currentUser } from "@/lib/auth/current";
+import { canAccessOrderDocuments, invoicePath, trackingPath } from "@/lib/shop/invoice";
 import { syncOrderPayment } from "@/lib/shop/payment";
 
 export const metadata: Metadata = { title: "Commande confirmee" };
 
-type SearchParams = Promise<{ ref?: string; total?: string; mode?: string; paiement?: string }>;
+type SearchParams = Promise<{ ref?: string; total?: string; mode?: string; paiement?: string; t?: string }>;
 
 async function Recap({ searchParams }: { searchParams: SearchParams }) {
   const sp = await searchParams;
   const reference = sp.ref ?? "BTH-0000-0000";
   const total = Number(sp.total ?? 0);
   const retrait = sp.mode === "retrait";
+  // Le lien de retour apres commande porte le jeton : le client garde l'acces
+  // a sa facture. Une reference saisie ou devinee dans l'URL, non.
+  const documentsAccess = sp.ref
+    ? canAccessOrderDocuments({ reference: sp.ref, token: sp.t, user: await currentUser() })
+    : false;
 
   // Le client revient de la page Jeko : on relit le statut chez eux plutot
   // que d'attendre le webhook, qui peut arriver apres lui (ou se perdre).
@@ -91,12 +97,17 @@ async function Recap({ searchParams }: { searchParams: SearchParams }) {
         </p>
 
         <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:justify-center">
-          <Link href={`/suivi?ref=${reference}`} className="btn-primary">
+          <Link
+            href={documentsAccess ? trackingPath(reference) : `/suivi?ref=${encodeURIComponent(reference)}`}
+            className="btn-primary"
+          >
             Suivre ma commande
           </Link>
+          {documentsAccess ? (
           <a href={invoicePath(reference)} className="btn-outline">
             Télécharger la facture PDF
           </a>
+          ) : null}
           <Link href="/boutique" className="btn-outline">
             Continuer mes achats
           </Link>

@@ -205,7 +205,7 @@ export function CheckoutForm({
 
     clear();
     router.push(
-      `/commande/confirmation?ref=${result.reference}&total=${result.total}&mode=${mode}${
+      `/commande/confirmation?ref=${result.reference}${result.accessToken ? `&t=${result.accessToken}` : ""}&total=${result.total}&mode=${mode}${
         result.paymentPending ? "&paiement=attente" : ""
       }`
     );
