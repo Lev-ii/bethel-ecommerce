@@ -191,7 +191,7 @@ export function NotificationPermissionButton() {
 
   if (permission === "granted") {
     return (
-      <span className="inline-flex items-center gap-1.5 text-fg-3">
+      <span className="inline-flex items-center gap-1.5 rounded-card border border-ok/30 bg-ok/10 px-3 py-1.5 text-sm font-medium text-ok">
         <Bell size={14} aria-hidden /> Alertes activées
       </span>
     );
@@ -199,7 +199,10 @@ export function NotificationPermissionButton() {
 
   if (permission === "denied") {
     return (
-      <span className="inline-flex items-center gap-1.5 text-fg-3" title="Réautorisez les notifications dans les réglages du navigateur pour ce site.">
+      <span
+        className="inline-flex items-center gap-1.5 rounded-card border border-warn/30 bg-warn/10 px-3 py-1.5 text-sm font-medium text-warn"
+        title="Réautorisez les notifications dans les réglages du navigateur pour ce site."
+      >
         <BellOff size={14} aria-hidden /> Alertes bloquées par le navigateur
       </span>
     );
@@ -209,7 +212,7 @@ export function NotificationPermissionButton() {
     <button
       type="button"
       onClick={async () => setPermission(await Notification.requestPermission())}
-      className="btn-outline inline-flex items-center gap-1.5 px-3 py-1.5 text-sm"
+      className="btn-accent inline-flex items-center gap-1.5 px-3 py-1.5 text-sm"
     >
       <Bell size={14} aria-hidden /> Activer les alertes commandes
     </button>

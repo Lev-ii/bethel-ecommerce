@@ -5,7 +5,7 @@ export function SignOutButton({ className = "btn-outline" }: { className?: strin
   return (
     <form action={signOut}>
       <button type="submit" className={className}>
-        <LogOut size={15} aria-hidden /> Se deconnecter
+        <LogOut size={15} aria-hidden /> Se déconnecter
       </button>
     </form>
   );
