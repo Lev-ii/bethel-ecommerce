@@ -6,7 +6,8 @@ export const runtime = "nodejs";
 
 /**
  * Efface les vues produit que le tableau de bord ne lit plus (voir
- * viewsRetentionCutoff). Appelee une fois par jour par GitHub Actions.
+ * viewsRetentionCutoff). Jamais planifiee : lancee a la main par l'admin
+ * (workflow GitHub "Purger les vues produit anciennes").
  */
 export async function GET(request: NextRequest) {
   const secret = process.env.CRON_SECRET;
