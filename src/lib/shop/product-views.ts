@@ -3,6 +3,9 @@ import { createHmac } from "node:crypto";
 /**
  * Regles du comptage des vues produit : un visiteur par jour, robots exclus,
  * sans cookie ni donnee personnelle. Pur et teste.
+ *
+ * Les vues sont conservees sans limite de duree, pour les etudes sur
+ * plusieurs annees : aucune suppression sans decision de l'administrateur.
  */
 
 /**
@@ -31,18 +34,4 @@ export function visitorHash(input: { secret: string; day: string; ip: string | n
     .update(`${input.day}|${input.ip ?? "?"}|${input.userAgent}`)
     .digest("hex")
     .slice(0, 32);
-}
-
-/**
- * Premier jour conserve dans product_views. La vue "12 mois" du tableau de
- * bord compare le mois en cours et les onze precedents aux douze d'avant :
- * il faut donc garder le mois en cours et les 23 mois precedents. Au-dela,
- * plus aucun ecran ne lit ces lignes.
- */
-export const VIEWS_RETENTION_MONTHS = 23;
-
-export function viewsRetentionCutoff(now: Date): string {
-  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - VIEWS_RETENTION_MONTHS, 1))
-    .toISOString()
-    .slice(0, 10);
 }
