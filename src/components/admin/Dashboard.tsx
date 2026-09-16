@@ -139,12 +139,14 @@ export async function Dashboard({ range }: { range: DashboardRange }) {
             <div className="grid items-start gap-4 lg:grid-cols-2">
               <StatusFigure stats={stats} names={names} />
               <ProductsFigure stats={stats} names={names} />
+              <ViewsFigure stats={stats} names={names} />
             </div>
           </div>
         ) : null}
         {range.view === "ca" ? <RevenueFigure range={range} stats={stats} names={names} /> : null}
         {range.view === "statuts" ? <StatusFigure stats={stats} names={names} /> : null}
         {range.view === "produits" ? <ProductsFigure stats={stats} names={names} /> : null}
+        {range.view === "vues" ? <ViewsFigure stats={stats} names={names} /> : null}
       </section>
 
       <section aria-labelledby="suivi" className="space-y-3">
@@ -285,6 +287,30 @@ function ProductsFigure({ stats, names }: { stats: DashboardStats; names: Names 
       }}
     >
       <BarChart items={items} emptyMessage="Aucune vente sur cette période." />
+    </ChartFrame>
+  );
+}
+
+function ViewsFigure({ stats, names }: { stats: DashboardStats; names: Names }) {
+  const items: BarItem[] = stats.topViewed.map((p) => ({
+    key: p.productId,
+    label: p.name,
+    value: p.views,
+    valueText: `${p.views} visiteur${p.views > 1 ? "s" : ""}`,
+  }));
+  return (
+    <ChartFrame
+      title="Produits les plus vus"
+      subtitle={`${names.current}, visiteurs distincts par jour, robots et administrateurs exclus`}
+      table={{
+        columns: ["Produit", "Visiteurs"],
+        rows: stats.topViewed.map((p) => [p.name, String(p.views)]),
+      }}
+    >
+      <BarChart
+        items={items}
+        emptyMessage="Aucune vue enregistrée sur cette période. Le comptage démarre à sa mise en service."
+      />
     </ChartFrame>
   );
 }
