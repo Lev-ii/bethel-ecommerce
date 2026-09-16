@@ -53,7 +53,9 @@ export function readMigrations(dir) {
     }
     seen.set(version, file);
     const content = fs.readFileSync(path.join(dir, file), "utf8");
-    if (/^\s*(BEGIN|COMMIT|ROLLBACK|START\s+TRANSACTION)\b/im.test(content)) {
+    // Instruction de controle de transaction, terminee par un point-virgule : le
+    // BEGIN d'un bloc PL/pgSQL, lui, n'en a pas et reste permis.
+    if (/^\s*(BEGIN|COMMIT|ROLLBACK|START\s+TRANSACTION)(\s+(WORK|TRANSACTION))?\s*;/im.test(content)) {
       throw new MigrationError(`${file} gere lui-meme une transaction : c'est le lanceur qui s'en charge.`);
     }
     return { version, name, file, content, checksum: checksum(content) };

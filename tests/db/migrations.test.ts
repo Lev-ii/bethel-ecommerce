@@ -137,6 +137,18 @@ describe("protections", () => {
     expect(() => readMigrations(m.dir)).toThrow(MigrationError);
   });
 
+  it("accepte le BEGIN d'une fonction PL/pgSQL, qui n'est pas un controle de transaction", async () => {
+    const m = setup({
+      "0001_fonction.sql": `CREATE FUNCTION {t}_f() RETURNS int LANGUAGE plpgsql AS $$
+BEGIN
+  RETURN 1;
+END
+$$;`,
+    });
+    expect((await m.run()).ran).toEqual(["0001"]);
+    await sql.unsafe(`DROP FUNCTION mig_t${m.n}_f()`);
+  });
+
   it("refuse deux migrations de meme version et un nom mal forme", () => {
     const doublon = setup({ "0001_a.sql": "SELECT 1;", "0001_b.sql": "SELECT 1;" });
     expect(() => readMigrations(doublon.dir)).toThrow(/meme version|portent la version/);
