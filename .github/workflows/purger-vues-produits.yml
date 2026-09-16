@@ -1,15 +1,18 @@
 name: Purger les vues produit anciennes
 
 # Efface les vues produit que le tableau de bord ne lit plus (plus de 24 mois,
-# voir viewsRetentionCutoff). Une fois par jour suffit : la table ne grossit
-# que d'une ligne par visiteur, par produit et par jour.
+# voir viewsRetentionCutoff).
+#
+# Jamais automatique : aucune donnee n'est supprimee sans decision de
+# l'administrateur. Lancement manuel uniquement (Actions > Run workflow), avec
+# confirmation ecrite.
 
 on:
-  schedule:
-    # 03:17 UTC, heure creuse a Abidjan. Minute impaire : GitHub retarde
-    # souvent les taches programmees a l'heure pile.
-    - cron: "17 3 * * *"
   workflow_dispatch:
+    inputs:
+      confirmation:
+        description: "Tapez SUPPRIMER pour effacer les vues de plus de 24 mois"
+        required: true
 
 jobs:
   purger:
@@ -21,8 +24,13 @@ jobs:
         env:
           APP_URL: ${{ secrets.BETHEL_APP_URL }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          CONFIRMATION: ${{ inputs.confirmation }}
         run: |
           set -u
+          if [ "${CONFIRMATION}" != "SUPPRIMER" ]; then
+            echo "::error::Confirmation absente : rien n'a ete supprime."
+            exit 1
+          fi
           if [ -z "${APP_URL:-}" ] || [ -z "${CRON_SECRET:-}" ]; then
             echo "Secrets BETHEL_APP_URL ou CRON_SECRET absents du depot."
             exit 0
