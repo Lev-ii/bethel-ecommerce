@@ -11,6 +11,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:db": "VITEST_DB=1 vitest run",
     "test:integration": "python3 tests/integration.py",
     "db:setup": "node --env-file-if-exists=.env scripts/setup-db.mjs",
     "test:concurrence": "node --env-file-if-exists=.env tests/concurrence.mjs",
