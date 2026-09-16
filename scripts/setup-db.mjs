@@ -12,6 +12,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { randomUUID, randomBytes, scrypt } from "node:crypto";
 import postgres from "postgres";
+import { runMigrations } from "./lib/migrations.mjs";
 
 const url = process.env.DATABASE_URL;
 if (!url) {
@@ -77,10 +78,19 @@ function readSeed(file, exportName) {
 }
 
 try {
-  console.log("1/4  Structure de la base...");
-  await sql.unsafe(
-    fs.readFileSync(path.join(process.cwd(), "db", "schema.sql"), "utf8")
-  );
+  console.log("1/4  Structure de la base (migrations)...");
+  // Base creee avant les migrations versionnees, par l'ancien db/schema.sql :
+  // sa structure est celle de 0001, qu'on marque donc sans l'executer.
+  const [{ legacy }] = await sql`
+    SELECT to_regclass('public.orders') IS NOT NULL
+       AND to_regclass('public.schema_migrations') IS NULL AS legacy
+  `;
+  if (legacy) console.log("     base anterieure aux migrations : 0001 marquee comme appliquee");
+  const plan = await runMigrations(sql, {
+    dir: path.join(process.cwd(), "db", "migrations"),
+    baseline: legacy ? "0001" : undefined,
+  });
+  console.log(`     appliquees : ${plan.ran.join(", ") || "aucune en attente"}`);
 
   console.log("2/4  Categories...");
   const categories = readSeed("catalog.ts", "categories");
