@@ -1,5 +1,9 @@
 node_modules
 .next
+# Tests de parcours : build dedie et rapports Playwright
+.next-e2e
+/test-results/
+/playwright-report/
 out
 build
 .env

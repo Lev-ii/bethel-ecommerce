@@ -73,3 +73,23 @@ export async function requestJeko(url: string, init: RequestInit, options: JekoR
     await new Promise((resolve) => setTimeout(resolve, delay * 2 ** n));
   }
 }
+
+export const JEKO_API_BASE = "https://api.jeko.africa";
+
+/**
+ * Adresse de l'API Jeko. JEKO_API_BASE la remplace pour les tests de
+ * parcours, qui font tourner un faux Jeko local : seule une adresse localhost
+ * est acceptee, et jamais sur Vercel. Impossible donc de detourner les
+ * paiements de la boutique en ligne par une variable d'environnement.
+ */
+export function jekoApiBase(env: Readonly<Record<string, string | undefined>>): string {
+  const override = env.JEKO_API_BASE;
+  if (!override) return JEKO_API_BASE;
+  if (env.VERCEL_ENV) {
+    throw new Error("JEKO_API_BASE est réservé aux tests locaux : refusé sur Vercel.");
+  }
+  if (!/^http:\/\/(localhost|127\.0\.0\.1):\d{2,5}$/.test(override)) {
+    throw new Error("JEKO_API_BASE doit être une adresse locale, par exemple http://127.0.0.1:3101.");
+  }
+  return override;
+}

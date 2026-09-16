@@ -1,7 +1,7 @@
 import "server-only";
 
 import { sql } from "@/lib/db/client";
-import { requestJeko } from "@/lib/shop/jeko-http";
+import { jekoApiBase, requestJeko } from "@/lib/shop/jeko-http";
 import { notifyCustomerLater } from "@/lib/shop/notifications";
 import type { PaymentMethod } from "@/lib/types";
 
@@ -35,7 +35,6 @@ export interface PaymentProvider {
  * distinct : les cles du Dashboard Business determinent le mode. Source :
  * developer.jeko.africa/docs/getting-started/{introduction,developer-setup}.
  */
-const JEKO_API_BASE = "https://api.jeko.africa";
 
 /**
  * Creation d'une demande de paiement : le client attend sur "Valider et
@@ -97,7 +96,7 @@ export async function confirmJekoTransaction(paymentRequestId: string): Promise<
   const config = getJekoConfig();
   if (!config) return null;
 
-  const endpoint = `${JEKO_API_BASE}/partner_api/payment_requests/${encodeURIComponent(paymentRequestId)}`;
+  const endpoint = `${jekoApiBase(process.env)}/partner_api/payment_requests/${encodeURIComponent(paymentRequestId)}`;
 
   try {
     const response = await requestJeko(endpoint, { method: "GET", headers: jekoAuthHeaders(config) }, JEKO_CHECK);
@@ -299,7 +298,7 @@ class JekoProvider implements PaymentProvider {
       },
     };
 
-    const initEndpoint = `${JEKO_API_BASE}/partner_api/payment_requests`;
+    const initEndpoint = `${jekoApiBase(process.env)}/partner_api/payment_requests`;
     const initResponse = await requestJeko(
       initEndpoint,
       {

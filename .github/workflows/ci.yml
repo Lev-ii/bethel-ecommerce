@@ -98,3 +98,51 @@ jobs:
 
       - name: Deux clients sur le dernier exemplaire
         run: npm run test:concurrence
+
+  parcours:
+    name: Parcours d'achat dans un navigateur
+    runs-on: ubuntu-latest
+    # Le site construit comme en production, un faux Jeko local et Chromium :
+    # commande payee, retour arriere depuis Jeko, paiement annule, abandon.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: bethel
+          POSTGRES_PASSWORD: bethel
+          POSTGRES_DB: bethel_e2e
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      E2E_DATABASE_URL: postgresql://bethel:bethel@localhost:5432/bethel_e2e
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Installer les dependances
+        run: npm ci
+
+      - name: Installer Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Parcours
+        run: npm run test:e2e
+
+      - name: Rapport en cas d'echec
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rapport-parcours
+          path: playwright-report/
+          retention-days: 7

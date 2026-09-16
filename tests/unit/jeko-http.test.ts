@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { JekoTimeoutError, requestJeko } from "@/lib/shop/jeko-http";
+import { JekoTimeoutError, jekoApiBase, requestJeko } from "@/lib/shop/jeko-http";
 
 type Step = "hang" | "hang-body" | "network" | number;
 
@@ -107,5 +107,30 @@ describe("requestJeko", () => {
 
     expect(calls[1] - calls[0]).toBeGreaterThanOrEqual(35);
     expect(calls[2] - calls[1]).toBeGreaterThanOrEqual(75);
+  });
+});
+
+describe("jekoApiBase", () => {
+  it("vise la vraie API par défaut", () => {
+    expect(jekoApiBase({})).toBe("https://api.jeko.africa");
+  });
+
+  it("accepte un faux Jeko local pour les tests de parcours", () => {
+    expect(jekoApiBase({ JEKO_API_BASE: "http://127.0.0.1:3101" })).toBe("http://127.0.0.1:3101");
+    expect(jekoApiBase({ JEKO_API_BASE: "http://localhost:3101" })).toBe("http://localhost:3101");
+  });
+
+  it.each(["production", "preview", "development"])("refuse toute substitution sur Vercel (%s)", (VERCEL_ENV) => {
+    expect(() => jekoApiBase({ JEKO_API_BASE: "http://127.0.0.1:3101", VERCEL_ENV })).toThrow(/refusé sur Vercel/);
+  });
+
+  it.each([
+    "https://evil.example",
+    "http://localhost.evil.example:80",
+    "http://127.0.0.1:3101/detour",
+    "http://10.0.0.5:3101",
+    "http://localhost",
+  ])("refuse une adresse non locale : %s", (JEKO_API_BASE) => {
+    expect(() => jekoApiBase({ JEKO_API_BASE })).toThrow(/adresse locale/);
   });
 });

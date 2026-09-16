@@ -13,6 +13,7 @@
     "test:watch": "vitest",
     "test:db": "VITEST_DB=1 vitest run",
     "test:integration": "python3 tests/integration.py",
+    "test:e2e": "playwright test",
     "db:setup": "node --env-file-if-exists=.env scripts/setup-db.mjs",
     "db:migrate": "node --env-file-if-exists=.env scripts/migrate.mjs",
     "db:migrate:status": "node --env-file-if-exists=.env scripts/migrate.mjs --status",
@@ -33,6 +34,7 @@
     "zustand": "^5.0.2"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@types/node": "^22.10.5",
     "@types/react": "^19.0.7",
     "@types/react-dom": "^19.0.3",
