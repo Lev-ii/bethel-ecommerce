@@ -1,7 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { useFormStatus } from "react-dom";
-import { Loader2 } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 
 export function Field({
   id,
@@ -32,6 +33,32 @@ export function Field({
   step?: number;
   className?: string;
 }) {
+  // Un mot de passe peut etre affiche le temps de verifier la saisie : sur
+  // telephone surtout, une faute de frappe invisible fait echouer la connexion.
+  const isPassword = type === "password";
+  const [revealed, setRevealed] = useState(false);
+
+  const input = (
+    <input
+      id={id}
+      name={name}
+      type={isPassword && revealed ? "text" : type}
+      defaultValue={defaultValue}
+      placeholder={placeholder}
+      required={required}
+      autoComplete={autoComplete}
+      min={min}
+      step={step}
+      aria-invalid={error ? true : undefined}
+      aria-describedby={
+        error ? `${id}-error` : hint ? `${id}-hint` : undefined
+      }
+      className={`field ${error ? "border-danger" : ""} ${
+        type === "number" ? "tabular" : ""
+      } ${isPassword ? "pr-11" : ""}`}
+    />
+  );
+
   return (
     <div className={className}>
       <label htmlFor={id} className="field-label">
@@ -40,24 +67,24 @@ export function Field({
           <span className="ml-1.5 font-normal text-fg-3">(facultatif)</span>
         ) : null}
       </label>
-      <input
-        id={id}
-        name={name}
-        type={type}
-        defaultValue={defaultValue}
-        placeholder={placeholder}
-        required={required}
-        autoComplete={autoComplete}
-        min={min}
-        step={step}
-        aria-invalid={error ? true : undefined}
-        aria-describedby={
-          error ? `${id}-error` : hint ? `${id}-hint` : undefined
-        }
-        className={`field ${error ? "border-danger" : ""} ${
-          type === "number" ? "tabular" : ""
-        }`}
-      />
+      {isPassword ? (
+        <div className="relative">
+          {input}
+          <button
+            type="button"
+            onClick={() => setRevealed((v) => !v)}
+            aria-controls={id}
+            aria-pressed={revealed}
+            aria-label={revealed ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+            title={revealed ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+            className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-card text-fg-3 transition-colors hover:text-fg focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-fg"
+          >
+            {revealed ? <EyeOff size={18} aria-hidden /> : <Eye size={18} aria-hidden />}
+          </button>
+        </div>
+      ) : (
+        input
+      )}
       {error ? (
         <p id={`${id}-error`} className="mt-1.5 text-sm text-danger">
           {error}
