@@ -14,6 +14,8 @@
     "test:db": "VITEST_DB=1 vitest run",
     "test:integration": "python3 tests/integration.py",
     "db:setup": "node --env-file-if-exists=.env scripts/setup-db.mjs",
+    "db:migrate": "node --env-file-if-exists=.env scripts/migrate.mjs",
+    "db:migrate:status": "node --env-file-if-exists=.env scripts/migrate.mjs --status",
     "test:concurrence": "node --env-file-if-exists=.env tests/concurrence.mjs",
     "admin:role": "node --env-file-if-exists=.env scripts/set-role.mjs",
     "admin:password": "node --env-file-if-exists=.env scripts/admin-password.mjs"
