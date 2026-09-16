@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Eyebrow } from "@/components/ui/Primitives";
 
-export const metadata: Metadata = { title: "Conditions generales de vente" };
+export const metadata: Metadata = { title: "Conditions générales de vente" };
 
 export default function CgvPage() {
   return (

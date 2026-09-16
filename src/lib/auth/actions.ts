@@ -86,7 +86,7 @@ export async function signIn(formData: FormData) {
       locked = loginLocked(await adminLoginEvents(user.id), ip, new Date());
     } catch (error) {
       // Meme base que la connexion : une panne ici ferait deja echouer le reste.
-      console.error("[auth] verification des tentatives impossible", error);
+      console.error("[auth] vérification des tentatives impossible", error);
     }
     if (locked) redirect(`/connexion?erreur=bloque${back}`);
   }
@@ -200,7 +200,7 @@ export async function requestPasswordReset(formData: FormData) {
       INSERT INTO password_reset_tokens (user_id, token_hash, expires_at)
       VALUES (${user.id}, ${hashResetToken(token)}, now() + interval '30 minutes')
     `;
-    console.info(`[auth] lien de reinitialisation genere pour ${email}: /mot-de-passe-oublie/${token}`);
+    console.info(`[auth] lien de réinitialisation généré pour ${email}: /mot-de-passe-oublie/${token}`);
   }
 
   redirect("/mot-de-passe-oublie?envoye=1");

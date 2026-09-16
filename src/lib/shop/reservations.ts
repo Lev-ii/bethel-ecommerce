@@ -69,7 +69,7 @@ export async function releaseExpiredReservationsQuietly(options: { reference?: s
   try {
     return await releaseExpiredReservations(options);
   } catch (error) {
-    console.error("[reservations] liberation des commandes expirees echouee", error);
+    console.error("[reservations] libération des commandes expirées échouée", error);
     return { releasedOrderIds: [], paidOrderIds: [] };
   }
 }

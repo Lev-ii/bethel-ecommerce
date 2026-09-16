@@ -22,7 +22,7 @@ export function StockStepper({ id, stock }: { id: string; stock: number }) {
           type="submit"
           disabled={stock <= 0}
           className="flex h-8 w-8 items-center justify-center text-fg-2 disabled:opacity-30"
-          aria-label="Retirer une piece"
+          aria-label="Retirer une pièce"
         >
           <Minus size={14} aria-hidden />
         </button>
@@ -38,7 +38,7 @@ export function StockStepper({ id, stock }: { id: string; stock: number }) {
         <button
           type="submit"
           className="flex h-8 w-8 items-center justify-center text-fg-2"
-          aria-label="Ajouter une piece"
+          aria-label="Ajouter une pièce"
         >
           <Plus size={14} aria-hidden />
         </button>

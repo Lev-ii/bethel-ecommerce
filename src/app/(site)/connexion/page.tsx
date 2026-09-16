@@ -35,7 +35,7 @@ export default async function ConnexionPage({
         <p className="mt-6 text-center text-sm text-fg-2">
           Pas encore de compte ?{" "}
           <Link href="/inscription" className="font-semibold underline underline-offset-4">
-            Creer un compte
+            Créer un compte
           </Link>
         </p>
 

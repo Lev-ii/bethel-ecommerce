@@ -29,8 +29,8 @@ export function authSecret(): string {
   // signer que de signer avec une valeur publique.
   if (process.env.NODE_ENV === "production") {
     throw new Error(
-      "AUTH_SECRET est absent ou trop court (16 caracteres minimum). " +
-        "Definis-le dans les variables d'environnement avant de deployer."
+      "AUTH_SECRET est absent ou trop court (16 caractères minimum). " +
+        "Définis-le dans les variables d'environnement avant de déployer."
     );
   }
   return "bethel-secret-de-demonstration-a-remplacer";

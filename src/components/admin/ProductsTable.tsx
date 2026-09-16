@@ -44,7 +44,7 @@ export async function ProductsTable({
           </p>
         </div>
         <Link href="/admin/produits/nouveau" className="btn-accent">
-          <Plus size={16} aria-hidden /> Ajouter du materiel
+          <Plus size={16} aria-hidden /> Ajouter du matériel
         </Link>
       </header>
 
@@ -174,11 +174,11 @@ export async function ProductsTable({
           <div className="px-4 py-12 text-center">
             <p className="text-sm text-fg-2">
               {needle
-                ? "Aucun produit ne correspond a cette recherche."
+                ? "Aucun produit ne correspond à cette recherche."
                 : "Le catalogue est vide."}
             </p>
             <Link href="/admin/produits/nouveau" className="btn-accent mt-4">
-              <Plus size={16} aria-hidden /> Ajouter du materiel
+              <Plus size={16} aria-hidden /> Ajouter du matériel
             </Link>
           </div>
         ) : null}

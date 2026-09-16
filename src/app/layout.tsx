@@ -7,11 +7,11 @@ export const metadata: Metadata = {
     template: "%s | Bethel",
   },
   description:
-    "Trepieds, microphones, eclairage et accessoires pour createurs. Disponibles sur place, livres ou a retirer.",
+    "Trépieds, microphones, éclairage et accessoires pour créateurs. Disponibles sur place, livrés ou à retirer.",
   openGraph: {
     title: "BETHELSHOP",
     description:
-      "Trepieds, microphones, eclairage et accessoires pour createurs. Disponibles sur place.",
+      "Trépieds, microphones, éclairage et accessoires pour créateurs. Disponibles sur place.",
     type: "website",
     locale: "fr_FR",
   },

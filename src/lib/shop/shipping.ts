@@ -28,5 +28,5 @@ export function quoteShipping(city: string): ShippingQuote {
     return { zone: "abidjan", fee: 2000, label: "Abidjan · sous 48 h" };
   }
 
-  return { zone: "interieur", fee: 5000, label: "Interieur · selon disponibilite" };
+  return { zone: "interieur", fee: 5000, label: "Intérieur · selon disponibilité" };
 }

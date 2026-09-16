@@ -5,18 +5,18 @@
  * exporter que des fonctions asynchrones.
  */
 export const productErrorMessages: Record<string, string> = {
-  nom: "Indiquez le nom du materiel.",
+  nom: "Indiquez le nom du matériel.",
   marque: "Indiquez la marque.",
-  categorie: "Choisissez une categorie.",
-  argument: "Ecrivez une ligne d'argument.",
-  prix: "Le prix doit etre superieur a zero.",
-  "prix-barre": "Le prix barre doit etre superieur au prix de vente.",
-  stock: "Le stock doit etre un nombre positif.",
-  image: "Format d'image non accepte, ou fichier trop lourd (3 Mo maximum).",
-  introuvable: "Ce materiel n'existe plus.",
-  refus: "Action reservee a l'administration.",
+  categorie: "Choisissez une catégorie.",
+  argument: "Écrivez une ligne d'argument.",
+  prix: "Le prix doit être supérieur à zéro.",
+  "prix-barre": "Le prix barré doit être supérieur au prix de vente.",
+  stock: "Le stock doit être un nombre positif.",
+  image: "Format d'image non accepté, ou fichier trop lourd (3 Mo maximum).",
+  introuvable: "Ce matériel n'existe plus.",
+  refus: "Action réservée à l'administration.",
   confirmation:
-    "Le nom saisi ne correspond pas. Le materiel n'a pas ete supprime.",
+    "Le nom saisi ne correspond pas. Le matériel n'a pas été supprimé.",
 };
 
 /** Champ du formulaire a mettre en evidence pour chaque erreur. */
@@ -33,5 +33,5 @@ export const productErrorField: Record<string, string> = {
 
 export function productErrorMessage(code?: string): string | undefined {
   if (!code) return undefined;
-  return productErrorMessages[code] ?? "L'enregistrement a echoue. Reessayez.";
+  return productErrorMessages[code] ?? "L'enregistrement a échoué. Réessayez.";
 }

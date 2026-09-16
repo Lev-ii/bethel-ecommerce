@@ -11,7 +11,7 @@ import { canAccessOrderDocuments, invoicePath, trackingPath } from "@/lib/shop/i
 import { shouldCelebrate } from "@/lib/shop/celebration";
 import { syncOrderPayment } from "@/lib/shop/payment";
 
-export const metadata: Metadata = { title: "Commande confirmee" };
+export const metadata: Metadata = { title: "Commande confirmée" };
 
 type SearchParams = Promise<{ ref?: string; total?: string; mode?: string; paiement?: string; t?: string }>;
 

@@ -96,11 +96,11 @@ export default async function ProduitPage({ params }: { params: Params }) {
           <div className="mt-7 space-y-2 text-sm text-fg-2">
             <p className="flex items-center gap-2">
               <Truck size={16} aria-hidden className="text-fg-3" />
-              Livraison en ville sous 48 h, ou retrait en boutique le jour meme.
+              Livraison en ville sous 48 h, ou retrait en boutique le jour même.
             </p>
             <p className="flex items-center gap-2">
               <RotateCcw size={16} aria-hidden className="text-fg-3" />
-              Echange sous 7 jours si le produit n&apos;a pas servi.
+              Échange sous 7 jours si le produit n&apos;a pas servi.
             </p>
           </div>
 
@@ -127,7 +127,7 @@ export default async function ProduitPage({ params }: { params: Params }) {
 
       {related.length > 0 ? (
         <section className="mt-16">
-          <h2 className="mb-6 text-2xl">Dans la meme categorie</h2>
+          <h2 className="mb-6 text-2xl">Dans la même catégorie</h2>
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
             {related.map((p) => (
               <ProductCard key={p.id} product={p} />

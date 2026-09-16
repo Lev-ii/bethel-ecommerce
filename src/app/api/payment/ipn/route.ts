@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
       console.warn(
         process.env.JEKO_WEBHOOK_SECRET
           ? "[payment:ipn] signature Jeko invalide ou absente"
-          : "[payment:ipn] JEKO_WEBHOOK_SECRET absent en production : webhook refuse"
+          : "[payment:ipn] JEKO_WEBHOOK_SECRET absent en production : webhook refusé"
       );
       return NextResponse.json({ ok: false, error: "Invalid signature." }, { status: 401 });
     }

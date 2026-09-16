@@ -45,15 +45,15 @@ export default async function AccueilPage() {
             <Eyebrow>Trépieds · Micros · Lumière · Accessoires</Eyebrow>
 
             <h1 className="mt-4 text-4xl sm:text-5xl lg:text-6xl">
-              Le materiel des créateurs,
+              Le matériel des créateurs,
               <br />
               disponible ici<span className="text-brand">.</span>
             </h1>
 
             <p className="mt-5 max-w-lg text-lg text-fg-2">
               Plus besoin de commander à l&apos;étranger et d&apos;attendre trois
-              semaines. Du materiel choisi pour tourner, enregistrer et éclairer,
-              en stock et livre sur place.
+              semaines. Du matériel choisi pour tourner, enregistrer et éclairer,
+              en stock et livré sur place.
             </p>
 
             {/* Bande Kelvin annotee : la reference du metier, pas une decoration. */}
@@ -61,7 +61,7 @@ export default async function AccueilPage() {
               <KelvinBar className="h-2 rounded-full" />
               <div className="tabular mt-2 flex justify-between text-[11px] uppercase tracking-wide text-fg-3">
                 <span>3200 K tungstene</span>
-                <span>5600 K lumiere du jour</span>
+                <span>5600 K lumière du jour</span>
               </div>
             </div>
 
@@ -128,7 +128,7 @@ export default async function AccueilPage() {
             {
               icon: Truck,
               title: "Livraison ou retrait",
-              text: "Livre en ville ou a recuperer sur place le jour meme.",
+              text: "Livré en ville ou à récupérer sur place le jour même.",
             },
             {
               icon: ShieldCheck,
@@ -212,7 +212,7 @@ export default async function AccueilPage() {
       {promos.length > 0 ? (
         <section className="border-t border-line bg-bg-2">
           <div className="shell py-14">
-            <SectionHeading eyebrow="Prix reduits" title="En promotion" />
+            <SectionHeading eyebrow="Prix réduits" title="En promotion" />
             <ProductGrid products={promos} />
           </div>
         </section>

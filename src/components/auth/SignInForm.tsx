@@ -36,7 +36,7 @@ export function SignInForm({
       />
 
       <Link href="/mot-de-passe-oublie" className="block text-sm underline underline-offset-4">
-        Mot de passe oublie ?
+        Mot de passe oublié ?
       </Link>
 
       <SubmitButton pendingLabel="Connexion..." className="btn-accent w-full">

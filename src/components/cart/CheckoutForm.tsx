@@ -189,7 +189,7 @@ export function CheckoutForm({
     });
 
     if (result.error || !result.reference) {
-      setServerError(result.error ?? "La commande n'a pas pu etre enregistree.");
+      setServerError(result.error ?? "La commande n'a pas pu être enregistrée.");
       setSubmitting(false);
       return;
     }

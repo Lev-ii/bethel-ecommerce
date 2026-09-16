@@ -4,7 +4,7 @@ import { ChevronLeft } from "lucide-react";
 import { ProductForm } from "@/components/admin/ProductForm";
 import { requireAdmin } from "@/lib/auth/current";
 
-export const metadata: Metadata = { title: "Ajouter du materiel" };
+export const metadata: Metadata = { title: "Ajouter du matériel" };
 
 export default async function NouveauProduitPage({
   searchParams,
@@ -23,9 +23,9 @@ export default async function NouveauProduitPage({
         >
           <ChevronLeft size={15} aria-hidden /> Produits
         </Link>
-        <h1 className="mt-3 text-3xl">Ajouter du materiel</h1>
+        <h1 className="mt-3 text-3xl">Ajouter du matériel</h1>
         <p className="mt-2 text-fg-2">
-          La fiche apparait dans la boutique des qu&apos;elle est publiee.
+          La fiche apparaît dans la boutique dès qu&apos;elle est publiée.
         </p>
       </header>
 

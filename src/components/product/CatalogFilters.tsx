@@ -55,7 +55,7 @@ export function CatalogFilters({ resultCount }: { resultCount: number }) {
             id="recherche"
             type="search"
             value={search}
-            placeholder="Chercher un trepied, un micro, une marque..."
+            placeholder="Chercher un trépied, un micro, une marque..."
             onChange={(e) => setSearch(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter") update("q", search || null);
@@ -78,7 +78,7 @@ export function CatalogFilters({ resultCount }: { resultCount: number }) {
           >
             <option value="recent">Trier : nos ajouts</option>
             <option value="prix-croissant">Prix croissant</option>
-            <option value="prix-decroissant">Prix decroissant</option>
+            <option value="prix-decroissant">Prix décroissant</option>
           </select>
         </div>
       </div>
@@ -128,7 +128,7 @@ export function CatalogFilters({ resultCount }: { resultCount: number }) {
         aria-live="polite"
       >
         {pending
-          ? "Mise a jour..."
+          ? "Mise à jour..."
           : `${resultCount} produit${resultCount > 1 ? "s" : ""}`}
       </p>
     </div>

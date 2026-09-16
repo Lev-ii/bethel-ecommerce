@@ -22,8 +22,8 @@ export function CartView() {
     return (
       <EmptyState
         title="Votre panier est vide"
-        description="Parcourez le catalogue et ajoutez le materiel dont vous avez besoin."
-        actionLabel="Voir le materiel"
+        description="Parcourez le catalogue et ajoutez le matériel dont vous avez besoin."
+        actionLabel="Voir le matériel"
         actionHref="/boutique"
       />
     );
@@ -68,7 +68,7 @@ export function CartView() {
                 <div
                   className="flex items-center rounded-card border border-line"
                   role="group"
-                  aria-label={`Quantite pour ${item.name}`}
+                  aria-label={`Quantité pour ${item.name}`}
                 >
                   <button
                     type="button"
@@ -117,7 +117,7 @@ export function CartView() {
           </div>
           <div className="flex justify-between">
             <dt className="text-fg-2">Livraison</dt>
-            <dd className="text-fg-3">Calculee a l&apos;etape suivante</dd>
+            <dd className="text-fg-3">Calculée à l&apos;étape suivante</dd>
           </div>
         </dl>
 
