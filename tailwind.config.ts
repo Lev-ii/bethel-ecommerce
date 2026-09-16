@@ -44,6 +44,10 @@ const config: Config = {
         warn: "rgb(var(--warn) / <alpha-value>)",
         danger: "rgb(var(--danger) / <alpha-value>)",
 
+        // Graphiques : serie principale et periode de comparaison.
+        "viz-accent": "rgb(var(--viz-accent) / <alpha-value>)",
+        "viz-context": "rgb(var(--viz-context) / <alpha-value>)",
+
         // Barre laterale de l'administration : sombre dans les deux themes.
         sidebar: "rgb(var(--sidebar) / <alpha-value>)",
         "sidebar-fg": "rgb(var(--sidebar-fg) / <alpha-value>)",
