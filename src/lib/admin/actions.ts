@@ -3,6 +3,8 @@
 import { randomUUID } from "node:crypto";
 import { redirect } from "next/navigation";
 import { revalidatePath, revalidateTag } from "next/cache";
+import { recordAudit } from "@/lib/admin/audit";
+import { diffFields } from "@/lib/admin/audit-core";
 import { assertDemoResetAllowed } from "@/lib/admin/demo-reset";
 import { assertAdmin } from "@/lib/auth/current";
 import { sql } from "@/lib/db/client";
@@ -188,7 +190,7 @@ export async function createProduct(formData: FormData) {
   let slug: string;
 
   try {
-    await assertAdmin();
+    const admin = await assertAdmin();
     const fields = parseFields(formData);
     const id = randomUUID();
 
@@ -225,6 +227,19 @@ export async function createProduct(formData: FormData) {
           VALUES (${id}, ${url}, ${position})
         `;
       }
+      await recordAudit(tx as unknown as typeof sql, {
+        action: "product.created",
+        actor: admin,
+        entityType: "product",
+        entityId: id,
+        entityLabel: fields.name,
+        changes: {
+          price: { to: fields.price },
+          stock: { to: fields.stock },
+          category: { to: fields.category },
+          published: { to: fields.published },
+        },
+      });
     });
   } catch (error) {
     redirect(`/admin/produits/nouveau?erreur=${codeOf(error)}`);
@@ -241,10 +256,28 @@ export async function updateProduct(formData: FormData) {
   let slug: string | undefined;
 
   try {
-    await assertAdmin();
+    const admin = await assertAdmin();
 
-    const [existing] = await sql<Array<{ image: string }>>`
-      SELECT image FROM products WHERE id = ${id}
+    const [existing] = await sql<
+      Array<{
+        image: string;
+        name: string;
+        brand: string;
+        category: string;
+        headline: string;
+        description: string;
+        price: number;
+        compare_at_price: number | null;
+        stock: number;
+        low_stock_threshold: number;
+        published: boolean;
+        featured: boolean;
+        is_hero: boolean;
+      }>
+    >`
+      SELECT image, name, brand, category, headline, description, price, compare_at_price,
+             stock, low_stock_threshold, published, featured, is_hero
+      FROM products WHERE id = ${id}
     `;
     if (!existing) throw invalid("introuvable");
 
@@ -279,6 +312,35 @@ export async function updateProduct(formData: FormData) {
         WHERE id = ${id}
       `;
       await writeSpecs(tx as unknown as typeof sql, id, fields.specs);
+      const changes = diffFields(
+        {
+          name: existing.name,
+          brand: existing.brand,
+          category: existing.category,
+          headline: existing.headline,
+          description: existing.description,
+          price: existing.price,
+          compareAtPrice: existing.compare_at_price,
+          stock: existing.stock,
+          lowStockThreshold: existing.low_stock_threshold,
+          published: existing.published,
+          featured: existing.featured,
+          isHero: existing.is_hero,
+        },
+        { ...fields },
+        ["name", "brand", "category", "headline", "description", "price", "compareAtPrice", "stock", "lowStockThreshold", "published", "featured", "isHero"]
+      );
+      if (uploadedImages.length > 0) changes.imagesAdded = { to: uploadedImages.length };
+      if (Object.keys(changes).length > 0) {
+        await recordAudit(tx as unknown as typeof sql, {
+          action: "product.updated",
+          actor: admin,
+          entityType: "product",
+          entityId: id,
+          entityLabel: fields.name,
+          changes,
+        });
+      }
       if (uploadedImages.length > 0) {
         const [{ maxPosition }] = await tx<Array<{ maxPosition: number | null }>>`
           SELECT max(position)::int AS "maxPosition"
@@ -303,12 +365,12 @@ export async function updateProduct(formData: FormData) {
 /* ------------------------------------------------------------ Suppression */
 
 export async function deleteProduct(formData: FormData) {
-  await assertAdmin();
+  const admin = await assertAdmin();
   const id = String(formData.get("id") ?? "");
   const confirmation = String(formData.get("confirmation") ?? "").trim();
 
-  const [product] = await sql<Array<{ name: string }>>`
-    SELECT name FROM products WHERE id = ${id}
+  const [product] = await sql<Array<{ name: string; price: number; stock: number }>>`
+    SELECT name, price, stock FROM products WHERE id = ${id}
   `;
   if (!product) redirect("/admin/produits?erreur=introuvable");
 
@@ -318,7 +380,17 @@ export async function deleteProduct(formData: FormData) {
     redirect(`/admin/produits/${id}?erreur=confirmation`);
   }
 
-  await sql`DELETE FROM products WHERE id = ${id}`;
+  await sql.begin(async (tx) => {
+    await tx`DELETE FROM products WHERE id = ${id}`;
+    await recordAudit(tx as unknown as typeof sql, {
+      action: "product.deleted",
+      actor: admin,
+      entityType: "product",
+      entityId: id,
+      entityLabel: product.name,
+      changes: { price: { from: product.price }, stock: { from: product.stock } },
+    });
+  });
   await deleteProductImages(id);
 
   refreshCatalog();
@@ -328,32 +400,63 @@ export async function deleteProduct(formData: FormData) {
 /* ------------------------------------------ Actions rapides sur une fiche */
 
 export async function adjustStock(formData: FormData) {
-  await assertAdmin();
+  const admin = await assertAdmin();
   const id = String(formData.get("id") ?? "");
   const delta = Number(formData.get("delta") ?? 0);
+  if (!Number.isInteger(delta) || delta === 0) return;
 
-  // GREATEST evite de passer sous zero, et l'operation reste atomique :
-  // deux ajustements simultanes ne s'ecrasent pas.
-  await sql`
-    UPDATE products SET stock = GREATEST(0, stock + ${delta}), updated_at = now()
-    WHERE id = ${id}
-  `;
+  // GREATEST evite de passer sous zero. Le verrou de ligne garantit que la
+  // valeur "avant" inscrite au journal est bien celle que l'ajustement a
+  // modifiee, meme si deux ajustements arrivent en meme temps.
+  await sql.begin(async (tx) => {
+    const [before] = await tx<Array<{ name: string; stock: number }>>`
+      SELECT name, stock FROM products WHERE id = ${id} FOR UPDATE
+    `;
+    if (!before) return;
+    const [after] = await tx<Array<{ stock: number }>>`
+      UPDATE products SET stock = GREATEST(0, stock + ${delta}), updated_at = now()
+      WHERE id = ${id}
+      RETURNING stock
+    `;
+    if (after.stock !== before.stock) {
+      await recordAudit(tx as unknown as typeof sql, {
+        action: "product.stock_adjusted",
+        actor: admin,
+        entityType: "product",
+        entityId: id,
+        entityLabel: before.name,
+        changes: { stock: { from: before.stock, to: after.stock } },
+      });
+    }
+  });
 
   refreshCatalog();
 }
 
 export async function togglePublished(formData: FormData) {
-  await assertAdmin();
+  const admin = await assertAdmin();
   const id = String(formData.get("id") ?? "");
-  await sql`
-    UPDATE products SET published = NOT published, updated_at = now()
-    WHERE id = ${id}
-  `;
+  await sql.begin(async (tx) => {
+    const [after] = await tx<Array<{ name: string; published: boolean }>>`
+      UPDATE products SET published = NOT published, updated_at = now()
+      WHERE id = ${id}
+      RETURNING name, published
+    `;
+    if (!after) return;
+    await recordAudit(tx as unknown as typeof sql, {
+      action: after.published ? "product.published" : "product.unpublished",
+      actor: admin,
+      entityType: "product",
+      entityId: id,
+      entityLabel: after.name,
+      changes: { published: { from: !after.published, to: after.published } },
+    });
+  });
   refreshCatalog();
 }
 
 export async function setOrderStatus(formData: FormData) {
-  await assertAdmin();
+  const admin = await assertAdmin();
   const id = String(formData.get("id") ?? "");
   const requestedStatus = String(formData.get("status") ?? "");
   const validStatuses: OrderStatus[] = ["recue", "preparee", "expediee", "livree"];
@@ -397,6 +500,17 @@ export async function setOrderStatus(formData: FormData) {
           paid_at = ${collectsPayment ? sql`now()` : sql`paid_at`}
       WHERE id = ${id}
     `;
+    await recordAudit(tx as unknown as typeof sql, {
+      action: "order.status_changed",
+      actor: admin,
+      entityType: "order",
+      entityId: id,
+      entityLabel: order.reference,
+      changes: {
+        status: { from: order.status, to: status },
+        ...(collectsPayment ? { paidAt: { to: "encaissé à la réception" } } : {}),
+      },
+    });
     return order.reference;
   });
 
@@ -420,12 +534,13 @@ export async function markAllOrdersSeen() {
 }
 
 export async function resetDemo(formData: FormData) {
-  await assertAdmin();
+  const admin = await assertAdmin();
   // Verifie cote serveur : masquer le bouton ne suffit pas, une action serveur
   // reste appelable directement.
   assertDemoResetAllowed(formData.get("confirmation"));
   const { seedDemoData } = await import("@/lib/db/seed");
   await seedDemoData({ force: true });
+  await recordAudit(sql, { action: "demo.reset", actor: admin });
   refreshCatalog();
   revalidatePath("/admin/commandes");
 }
@@ -433,13 +548,15 @@ export async function resetDemo(formData: FormData) {
 /* --------------------------------------------------------- Gestion images */
 
 export async function deleteProductImage(productId: string, imagePosition: string) {
-  await assertAdmin();
+  const admin = await assertAdmin();
 
   const position = Number(imagePosition);
   if (!Number.isInteger(position) || position < 0) return;
 
-  const [image] = await sql<Array<{ url: string }>>`
-    SELECT url FROM product_images WHERE product_id = ${productId} AND position = ${position}
+  const [image] = await sql<Array<{ url: string; name: string }>>`
+    SELECT i.url, p.name
+    FROM product_images i JOIN products p ON p.id = i.product_id
+    WHERE i.product_id = ${productId} AND i.position = ${position}
   `;
   if (!image) return;
 
@@ -449,6 +566,14 @@ export async function deleteProductImage(productId: string, imagePosition: strin
       UPDATE product_images SET position = position - 1
       WHERE product_id = ${productId} AND position > ${position}
     `;
+    await recordAudit(tx as unknown as typeof sql, {
+      action: "product.image_deleted",
+      actor: admin,
+      entityType: "product",
+      entityId: productId,
+      entityLabel: image.name,
+      changes: { position: { from: position + 1 } },
+    });
   });
 
   await deleteProductImageFile(image.url);

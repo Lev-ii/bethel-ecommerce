@@ -1,5 +1,6 @@
 "use server";
 
+import { recordAuditQuietly } from "@/lib/admin/audit";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
@@ -78,6 +79,21 @@ export async function signIn(formData: FormData) {
   // Meme message dans les deux cas : distinguer les deux reviendrait a dire
   // qui possede un compte chez nous.
   const ok = user ? await verifyPassword(password, user.passwordHash) : false;
+
+  // Seuls les comptes administrateurs sont journalises : les connexions des
+  // clients noieraient ce qui compte. Un echec n'a pas d'acteur authentifie,
+  // mais l'email vise est note.
+  if (user?.role === "ADMIN") {
+    await recordAuditQuietly({
+      action: ok ? "auth.admin_login" : "auth.admin_login_failed",
+      actor: ok ? { id: user.id, email: user.email } : null,
+      actorEmail: user.email,
+      entityType: "user",
+      entityId: user.id,
+      entityLabel: user.email,
+    });
+  }
+
   if (!user || !ok) {
     redirect(`/connexion?erreur=identifiants${back}`);
   }
@@ -191,12 +207,22 @@ export async function resetPassword(formData: FormData) {
       AND t.token_hash = ${hashResetToken(token)}
       AND t.expires_at > now()
       AND t.used_at IS NULL
-    RETURNING u.id
+    RETURNING u.id, u.email, u.role
   `;
   if (rows.length === 0) redirect("/mot-de-passe-oublie?erreur=invalide");
   await sql`
     UPDATE password_reset_tokens SET used_at = now()
     WHERE token_hash = ${hashResetToken(token)}
   `;
+  const [account] = rows as unknown as Array<{ id: string; email: string; role: string }>;
+  if (account.role === "ADMIN") {
+    await recordAuditQuietly({
+      action: "auth.password_reset",
+      actorEmail: account.email,
+      entityType: "user",
+      entityId: account.id,
+      entityLabel: account.email,
+    });
+  }
   redirect("/connexion?reset=1");
 }
