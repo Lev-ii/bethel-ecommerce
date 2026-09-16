@@ -1,6 +1,7 @@
 import "server-only";
 
 import { sql } from "@/lib/db/client";
+import { requestJeko } from "@/lib/shop/jeko-http";
 import { notifyCustomerLater } from "@/lib/shop/notifications";
 import type { PaymentMethod } from "@/lib/types";
 
@@ -35,6 +36,21 @@ export interface PaymentProvider {
  * developer.jeko.africa/docs/getting-started/{introduction,developer-setup}.
  */
 const JEKO_API_BASE = "https://api.jeko.africa";
+
+/**
+ * Creation d'une demande de paiement : le client attend sur "Valider et
+ * payer". Jamais rejouee : une creation arrivee chez Jeko mais dont la reponse
+ * s'est perdue donnerait deux demandes pour une commande.
+ */
+const JEKO_CREATE = { timeoutMs: 15_000 };
+
+/**
+ * Verification d'un paiement : lecture sans effet, donc rejouable une fois.
+ * Appelee pendant le rendu de la page de confirmation, d'ou un delai court :
+ * au pire 5 s + 0,5 s + 5 s avant d'afficher "paiement en cours de
+ * verification", le cron et le webhook prenant le relais.
+ */
+const JEKO_CHECK = { timeoutMs: 5_000, retries: 1, retryDelayMs: 500 };
 
 /** paymentMethod attendu par Jeko pour chaque moyen de paiement en ligne. */
 const JEKO_PAYMENT_METHOD: Partial<Record<PaymentMethod, string>> = {
@@ -84,8 +100,8 @@ export async function confirmJekoTransaction(paymentRequestId: string): Promise<
   const endpoint = `${JEKO_API_BASE}/partner_api/payment_requests/${encodeURIComponent(paymentRequestId)}`;
 
   try {
-    const response = await fetch(endpoint, { method: "GET", headers: jekoAuthHeaders(config) });
-    const body = (await response.json().catch(() => ({}))) as Record<string, unknown>;
+    const response = await requestJeko(endpoint, { method: "GET", headers: jekoAuthHeaders(config) }, JEKO_CHECK);
+    const body = response.body;
 
     // Demande inconnue de Jeko (ex. identifiant d'un ancien prestataire) :
     // elle n'a certainement pas ete payee chez eux. On ne la traite pas en
@@ -284,12 +300,16 @@ class JekoProvider implements PaymentProvider {
     };
 
     const initEndpoint = `${JEKO_API_BASE}/partner_api/payment_requests`;
-    const initResponse = await fetch(initEndpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...jekoAuthHeaders(config) },
-      body: JSON.stringify(initPayload),
-    });
-    const initBody = (await initResponse.json().catch(() => ({}))) as Record<string, unknown>;
+    const initResponse = await requestJeko(
+      initEndpoint,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...jekoAuthHeaders(config) },
+        body: JSON.stringify(initPayload),
+      },
+      JEKO_CREATE
+    );
+    const initBody = initResponse.body;
 
     if (!initResponse.ok) {
       const initMessage = typeof initBody?.message === "string" ? initBody.message : JSON.stringify(initBody);
