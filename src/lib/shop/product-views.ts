@@ -32,3 +32,17 @@ export function visitorHash(input: { secret: string; day: string; ip: string | n
     .digest("hex")
     .slice(0, 32);
 }
+
+/**
+ * Premier jour conserve dans product_views. La vue "12 mois" du tableau de
+ * bord compare le mois en cours et les onze precedents aux douze d'avant :
+ * il faut donc garder le mois en cours et les 23 mois precedents. Au-dela,
+ * plus aucun ecran ne lit ces lignes.
+ */
+export const VIEWS_RETENTION_MONTHS = 23;
+
+export function viewsRetentionCutoff(now: Date): string {
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - VIEWS_RETENTION_MONTHS, 1))
+    .toISOString()
+    .slice(0, 10);
+}
