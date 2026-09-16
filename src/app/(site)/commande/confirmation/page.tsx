@@ -2,11 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { CheckCircle2 } from "lucide-react";
+import { Celebration } from "@/components/cart/Celebration";
 import { ClearCartOnMount } from "@/components/cart/ClearCartOnMount";
 import { Eyebrow, KelvinBar } from "@/components/ui/Primitives";
 import { formatPrice } from "@/lib/format";
 import { currentUser } from "@/lib/auth/current";
 import { canAccessOrderDocuments, invoicePath, trackingPath } from "@/lib/shop/invoice";
+import { shouldCelebrate } from "@/lib/shop/celebration";
 import { syncOrderPayment } from "@/lib/shop/payment";
 
 export const metadata: Metadata = { title: "Commande confirmee" };
@@ -31,10 +33,18 @@ async function Recap({ searchParams }: { searchParams: SearchParams }) {
     sp.paiement === "attente" || (sync?.kind === "checked" && sync.online && !sync.paid && !sync.failed);
   const paiementEchoue = sync?.kind === "checked" && sync.online && sync.failed;
   const paiementRecu = sync?.kind === "checked" && sync.online && sync.paid;
+  const celebrate = shouldCelebrate({
+    hasAccess: documentsAccess,
+    orderFound: sync?.kind === "checked",
+    onlinePayment: sync?.kind === "checked" && sync.online,
+    paid: Boolean(paiementRecu),
+    failed: Boolean(paiementEchoue),
+  });
 
   return (
     <div className="card mx-auto max-w-xl overflow-hidden">
       {sp.ref && !paiementEchoue ? <ClearCartOnMount /> : null}
+      {celebrate && sp.ref ? <Celebration reference={sp.ref} /> : null}
       <KelvinBar />
       <div className="p-7 text-center">
         <CheckCircle2
