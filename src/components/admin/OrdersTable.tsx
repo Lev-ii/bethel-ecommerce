@@ -3,6 +3,7 @@ import {
   canAdvanceOrder,
   formatDateTime,
   formatPrice,
+  orderStatusChange,
   orderStatusFlow,
   orderStatusLabel,
   paymentMethodLabel,
@@ -252,26 +253,35 @@ export async function OrdersTable({ filters }: { filters: OrderFilters }) {
                 ) : null}
                 <p className="field-label">Faire avancer la commande</p>
                 <p className="-mt-1 mb-2 text-xs text-fg-3">
-                  Le client est prévenu à chaque étape par WhatsApp{o.customerEmail ? " et par email" : ""}.
+                  {o.status === "livree"
+                    ? "Commande livrée : son statut est définitif."
+                    : `Le client est prévenu à chaque étape par WhatsApp${o.customerEmail ? " et par email" : ""}. Revenir d'une étape corrige une erreur sans le prévenir.`}
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  {orderStatusFlow.map((s) => (
+                  {orderStatusFlow.map((s) => {
+                    const change = orderStatusChange(o.status, s);
+                    return (
                     <form key={s} action={setOrderStatus}>
                       <input type="hidden" name="id" value={o.id} />
                       <input type="hidden" name="status" value={s} />
                       <button
                         type="submit"
                         aria-pressed={o.status === s}
+                        disabled={change === null}
+                        title={change === "correction" ? "Corriger : revenir à cette étape sans prévenir le client" : undefined}
                         className={`rounded-card border px-3 py-1.5 text-sm transition-colors ${
                           o.status === s
                             ? "border-fg bg-fg text-bg"
-                            : "border-line bg-bg text-fg-2 hover:border-fg-3 hover:text-fg"
+                            : change === null
+                              ? "cursor-not-allowed border-line bg-bg text-fg-3 opacity-50"
+                              : "border-line bg-bg text-fg-2 hover:border-fg-3 hover:text-fg"
                         }`}
                       >
-                        {orderStatusLabel[s]}
+                        {change === "correction" ? `↩ ${orderStatusLabel[s]}` : orderStatusLabel[s]}
                       </button>
                     </form>
-                  ))}
+                    );
+                  })}
                 </div>
                 </>
                 )}

@@ -93,6 +93,29 @@ export const orderStatusFlow: OrderStatus[] = [
   "livree",
 ];
 
+export type OrderStatusChange = "avance" | "correction" | null;
+
+/**
+ * Changement de statut permis par l'administration, a partir d'une commande
+ * que canAdvanceOrder autorise deja a traiter.
+ *
+ * - Avancer, d'une ou plusieurs etapes : le client est prevenu.
+ * - Reculer d'une seule etape : correction d'un mauvais clic, sans message
+ *   au client, inscrite au journal d'audit.
+ * - Livree est definitif : l'argent est encaisse, le client a ete prevenu.
+ *
+ * null : changement refuse.
+ */
+export function orderStatusChange(from: OrderStatus, to: OrderStatus): OrderStatusChange {
+  const target = orderStatusFlow.indexOf(to);
+  if (target === -1 || from === to || from === "annulee" || from === "livree") return null;
+  if (from === "attente_paiement") return "avance";
+
+  const current = orderStatusFlow.indexOf(from);
+  if (target > current) return "avance";
+  return target === current - 1 ? "correction" : null;
+}
+
 export function discountPercent(product: Product): number | null {
   if (!product.compareAtPrice || product.compareAtPrice <= product.price) {
     return null;

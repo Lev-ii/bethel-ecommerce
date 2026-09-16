@@ -56,6 +56,7 @@ const FIELD_LABELS: Record<string, string> = {
   position: "Position de la photo",
   status: "Statut",
   paidAt: "Encaissement",
+  correction: "Correction",
 };
 
 const MONEY = new Set(["price", "compareAtPrice"]);

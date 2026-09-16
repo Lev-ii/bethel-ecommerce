@@ -10,7 +10,7 @@ import { assertAdmin } from "@/lib/auth/current";
 import { sql } from "@/lib/db/client";
 import { deleteProductImageFile, deleteProductImages, saveProductImage, UploadError } from "@/lib/storage";
 import { categories } from "@/lib/data/catalog";
-import { canAdvanceOrder } from "@/lib/format";
+import { canAdvanceOrder, orderStatusChange } from "@/lib/format";
 import { notifyCustomerLater, type CustomerEvent } from "@/lib/shop/notifications";
 import type { CategorySlug, OrderStatus, PaymentMethod, Spec } from "@/lib/types";
 
@@ -476,9 +476,10 @@ export async function setOrderStatus(formData: FormData) {
       SELECT reference, status, paid_at, payment_method, delivery_mode
       FROM orders WHERE id = ${id} FOR UPDATE
     `;
+    const change = order ? orderStatusChange(order.status, status) : null;
     if (
       !order ||
-      order.status === status ||
+      !change ||
       !canAdvanceOrder({
         status: order.status,
         paidAt: order.paid_at?.toISOString(),
@@ -489,6 +490,7 @@ export async function setOrderStatus(formData: FormData) {
       return null;
     }
     // Paiement a la reception : livree (ou retiree) veut dire encaissee.
+    // Livree etant definitif, une correction ne passe jamais par ici.
     const collectsPayment =
       status === "livree" &&
       order.paid_at === null &&
@@ -509,11 +511,15 @@ export async function setOrderStatus(formData: FormData) {
       changes: {
         status: { from: order.status, to: status },
         ...(collectsPayment ? { paidAt: { to: "encaissé à la réception" } } : {}),
+        ...(change === "correction" ? { correction: { to: "retour d'une étape, client non prévenu" } } : {}),
       },
     });
-    return order.reference;
+    return change === "avance" ? order.reference : null;
   });
 
+  // Une correction ne previent pas le client : il a deja recu le message de
+  // l'etape annulee, lui en envoyer un second pour revenir en arriere
+  // l'embrouillerait.
   if (changedReference) {
     notifyCustomerLater(changedReference, status === "recue" ? "commande_recue" : (status as CustomerEvent));
   }
