@@ -13,6 +13,7 @@ import {
 } from "@/lib/catalog-fallback";
 import { toOrder, toProduct, toUser, type OrderRow, type ProductRow, type UserRow } from "@/lib/db/rows";
 import { ORDER_PAGE_SIZE, escapeLike, type OrderFilters } from "@/lib/admin/order-filters";
+import type { DashboardRange } from "@/lib/admin/dashboard-range";
 import type { Category, CategorySlug, Order, OrderStatus, Product, User } from "@/lib/types";
 
 /**
@@ -292,11 +293,131 @@ const orderColumns = sql`
  * base remonte donc telle quelle (throw), plutot que de se faire passer pour
  * "commande introuvable" ou "email/mot de passe incorrect".
  */
-export async function getOrders(): Promise<Order[]> {
+export async function getRecentOrders(limit: number): Promise<Order[]> {
   const rows = await sql<OrderRow[]>`
-    SELECT ${orderColumns} FROM orders o ORDER BY o.created_at DESC
+    SELECT ${orderColumns} FROM orders o ORDER BY o.created_at DESC LIMIT ${limit}
   `;
   return rows.map(toOrder);
+}
+
+/** File d'attente du moment : commandes recues ou preparees, toutes dates. */
+export async function countOrdersToProcess(): Promise<number> {
+  const [row] = await sql<Array<{ count: number }>>`
+    SELECT count(*)::int AS count FROM orders WHERE status IN ('recue', 'preparee')
+  `;
+  return row?.count ?? 0;
+}
+
+export interface DashboardPoint {
+  revenue: number;
+  orders: number;
+}
+
+export interface DashboardStats {
+  /** Un point par intervalle, zeros compris : la courbe ne saute jamais un jour. */
+  current: DashboardPoint[];
+  previous: DashboardPoint[];
+  totals: { current: DashboardPoint; previous: DashboardPoint };
+  /** Tous les statuts, dans l'ordre du cycle de vie, zeros compris. */
+  statuses: Array<{ status: OrderStatus; count: number }>;
+  topProducts: Array<{ productId: string; name: string; quantity: number; revenue: number }>;
+}
+
+const STATUS_ORDER: OrderStatus[] = [
+  "attente_paiement",
+  "recue",
+  "preparee",
+  "expediee",
+  "livree",
+  "annulee",
+];
+
+/**
+ * Indicateurs du tableau de bord, agreges en base.
+ *
+ * Une commande annulee ou en attente de paiement en ligne n'est pas une vente :
+ * elle ne compte ni dans le chiffre d'affaires, ni dans les produits vendus.
+ * Elle apparait en revanche dans la repartition par statut.
+ */
+export async function getDashboardStats(range: DashboardRange): Promise<DashboardStats> {
+  const utcDate = sql`(o.created_at AT TIME ZONE 'UTC')::date`;
+
+  const indexFrom = (start: string) => {
+    if (range.bucket === "month") {
+      return sql`(
+        (extract(year FROM o.created_at AT TIME ZONE 'UTC')::int * 12
+          + extract(month FROM o.created_at AT TIME ZONE 'UTC')::int)
+        - (extract(year FROM ${start}::date)::int * 12 + extract(month FROM ${start}::date)::int)
+      )`;
+    }
+    return range.bucket === "week"
+      ? sql`((${utcDate} - ${start}::date) / 7)`
+      : sql`(${utcDate} - ${start}::date)`;
+  };
+
+  const series = await sql<Array<{ is_current: boolean; idx: number; revenue: number; orders: number }>>`
+    SELECT
+      (o.created_at >= ${range.from}::date) AS is_current,
+      CASE WHEN o.created_at >= ${range.from}::date
+        THEN ${indexFrom(range.from)}
+        ELSE ${indexFrom(range.previousFrom)}
+      END AS idx,
+      sum(o.total)::float8 AS revenue,
+      count(*)::int AS orders
+    FROM orders o
+    WHERE o.status NOT IN ('annulee', 'attente_paiement')
+      AND o.created_at >= ${range.previousFrom}::date
+      AND o.created_at < ${range.to}::date + 1
+    GROUP BY 1, 2
+  `;
+
+  const empty = () =>
+    Array.from({ length: range.bucketCount }, (): DashboardPoint => ({ revenue: 0, orders: 0 }));
+  const current = empty();
+  const previous = empty();
+  for (const row of series) {
+    const target = row.is_current ? current : previous;
+    if (row.idx >= 0 && row.idx < target.length) {
+      target[row.idx] = { revenue: row.revenue, orders: row.orders };
+    }
+  }
+  const sum = (points: DashboardPoint[]) =>
+    points.reduce((acc, p) => ({ revenue: acc.revenue + p.revenue, orders: acc.orders + p.orders }), {
+      revenue: 0,
+      orders: 0,
+    });
+
+  const statusRows = await sql<Array<{ status: OrderStatus; count: number }>>`
+    SELECT o.status, count(*)::int AS count
+    FROM orders o
+    WHERE o.created_at >= ${range.from}::date AND o.created_at < ${range.to}::date + 1
+    GROUP BY o.status
+  `;
+  const byStatus = new Map(statusRows.map((r) => [r.status, r.count]));
+
+  const topProducts = await sql<DashboardStats["topProducts"]>`
+    SELECT
+      l.product_id AS "productId",
+      (array_agg(l.name ORDER BY o.created_at DESC))[1] AS name,
+      sum(l.quantity)::int AS quantity,
+      sum(l.quantity * l.unit_price)::float8 AS revenue
+    FROM order_lines l
+    JOIN orders o ON o.id = l.order_id
+    WHERE o.status NOT IN ('annulee', 'attente_paiement')
+      AND o.created_at >= ${range.from}::date
+      AND o.created_at < ${range.to}::date + 1
+    GROUP BY l.product_id
+    ORDER BY quantity DESC, revenue DESC, name
+    LIMIT 8
+  `;
+
+  return {
+    current,
+    previous,
+    totals: { current: sum(current), previous: sum(previous) },
+    statuses: STATUS_ORDER.map((status) => ({ status, count: byStatus.get(status) ?? 0 })),
+    topProducts: [...topProducts],
+  };
 }
 
 export interface OrderSearchResult {
