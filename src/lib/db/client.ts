@@ -1,6 +1,7 @@
 import "server-only";
 
 import postgres from "postgres";
+import { selectDatabaseUrl } from "@/lib/db/database-url";
 
 /**
  * Connexion a la base.
@@ -14,12 +15,7 @@ const globalForDb = globalThis as unknown as {
 };
 
 function connect() {
-  const url = process.env.DATABASE_URL;
-  if (!url) {
-    throw new Error(
-      "DATABASE_URL n'est pas defini. Copiez .env.example vers .env et renseignez la connexion Supabase."
-    );
-  }
+  const url = selectDatabaseUrl(process.env);
 
   // Nombre de connexions ouvertes par instance de fonction serverless, pas au
   // total : sous forte charge, Vercel fait tourner plusieurs instances en
