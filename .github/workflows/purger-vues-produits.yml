@@ -1,0 +1,42 @@
+name: Purger les vues produit anciennes
+
+# Efface les vues produit que le tableau de bord ne lit plus (plus de 24 mois,
+# voir viewsRetentionCutoff). Une fois par jour suffit : la table ne grossit
+# que d'une ligne par visiteur, par produit et par jour.
+
+on:
+  schedule:
+    # 03:17 UTC, heure creuse a Abidjan. Minute impaire : GitHub retarde
+    # souvent les taches programmees a l'heure pile.
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+jobs:
+  purger:
+    name: Effacer les vues de plus de 24 mois
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Appeler la route de purge
+        env:
+          APP_URL: ${{ secrets.BETHEL_APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          set -u
+          if [ -z "${APP_URL:-}" ] || [ -z "${CRON_SECRET:-}" ]; then
+            echo "Secrets BETHEL_APP_URL ou CRON_SECRET absents du depot."
+            exit 0
+          fi
+
+          code=$(curl -sS --max-time 30 -o reponse.txt -w '%{http_code}' \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            "${APP_URL%/}/api/cron/purge-product-views")
+
+          echo "HTTP ${code}"
+          cat reponse.txt || true
+          echo
+
+          if [ "${code}" != "200" ]; then
+            echo "::error::La purge des vues produit a echoue (HTTP ${code})."
+            exit 1
+          fi
