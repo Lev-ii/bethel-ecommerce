@@ -1,11 +1,12 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { createFakeJeko } from "../support/fake-jeko";
 
 /**
  * Tunnel d'achat contre un vrai PostgreSQL : placeOrder, liberation des
  * reservations et synchronisation du paiement.
  *
- * Jeko est simule au niveau de fetch : le vrai code du prestataire s'execute
- * (construction de la demande, lecture des reponses), sans aucun appel reseau.
+ * Jeko est simule au niveau de fetch (tests/support/fake-jeko.ts) : le vrai
+ * code du prestataire s'execute, sans aucun appel reseau.
  * Les produits de test portent l'identifiant tunnel-*, les commandes le nom
  * "Tunnel test" : tout est efface a la fin.
  */
@@ -31,47 +32,7 @@ const TRIPOD = "tunnel-trepied";
 const MIC = "tunnel-micro";
 const HIDDEN = "tunnel-brouillon";
 
-/** Etat du faux Jeko. */
-const jeko = {
-  down: false,
-  createFails: false,
-  created: 0,
-  /** Retient les verifications jusqu'a ce que ce nombre d'appels soit en cours. */
-  holdUntil: 0,
-  waiting: [] as Array<() => void>,
-  requests: new Map<string, { status: string; amountCents?: number }>(),
-};
-
-function json(status: number, body: unknown) {
-  return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
-}
-
-const fakeFetch = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
-  const url = String(input);
-  if (!url.startsWith("https://api.jeko.africa/")) throw new Error(`Appel réseau inattendu : ${url}`);
-  if (jeko.down) return json(503, { message: "indisponible" });
-
-  if (init?.method === "POST") {
-    if (jeko.createFails) return json(500, { message: "erreur interne Jeko" });
-    jeko.created += 1;
-    const id = `pr-tunnel-${jeko.created}`;
-    const body = JSON.parse(String(init.body)) as { amountCents: number };
-    jeko.requests.set(id, { status: "pending", amountCents: body.amountCents });
-    return json(201, { id, redirectUrl: `https://pay.jeko.africa/${id}` });
-  }
-
-  if (jeko.holdUntil > 0) {
-    await new Promise<void>((resolve) => {
-      jeko.waiting.push(resolve);
-      if (jeko.waiting.length >= jeko.holdUntil) jeko.waiting.splice(0).forEach((release) => release());
-    });
-  }
-
-  const id = decodeURIComponent(url.split("/").pop() ?? "");
-  const request = jeko.requests.get(id);
-  if (!request) return json(404, { message: "inconnue" });
-  return json(200, { id, status: request.status, transaction: { amount: { amount: request.amountCents } } });
-});
+const jeko = createFakeJeko();
 
 async function stockOf(id: string) {
   const [row] = await sql<Array<{ stock: number }>>`SELECT stock FROM products WHERE id = ${id}`;
@@ -111,7 +72,7 @@ async function purge() {
 }
 
 beforeAll(async () => {
-  vi.stubGlobal("fetch", fakeFetch);
+  vi.stubGlobal("fetch", jeko.fetch);
   process.env.JEKO_API_KEY = "cle-de-test";
   process.env.JEKO_API_KEY_ID = "id-de-test";
   process.env.JEKO_STORE_ID = "boutique-de-test";
@@ -140,8 +101,7 @@ beforeAll(async () => {
 beforeEach(async () => {
   await sql`DELETE FROM orders WHERE customer_name = ${CUSTOMER}`;
   await sql`UPDATE products SET stock = 5 WHERE id IN (${TRIPOD}, ${MIC}, ${HIDDEN})`;
-  Object.assign(jeko, { down: false, createFails: false, holdUntil: 0 });
-  jeko.requests.clear();
+  jeko.reset();
   vi.mocked(notifyCustomerLater).mockClear();
 });
 
@@ -167,10 +127,10 @@ describe("réservation à la commande", () => {
     const order = await orderByReference(result.reference!);
     expect(order.status).toBe("attente_paiement");
     expect(order.paid_at).toBeNull();
-    expect(order.payment_ref).toMatch(/^pr-tunnel-/);
+    expect(order.payment_ref).toMatch(/^pr-test-/);
     // Prix relu en base et converti en centimes pour Jeko.
     expect(order.total).toBe(90000);
-    expect(jeko.requests.get(order.payment_ref!)?.amountCents).toBe(9000000);
+    expect(jeko.state.requests.get(order.payment_ref!)?.amountCents).toBe(9000000);
     // Le client n'est prevenu qu'une fois le paiement confirme.
     expect(notifyCustomerLater).not.toHaveBeenCalled();
   });
@@ -212,23 +172,23 @@ describe("réservation à la commande", () => {
   });
 
   it.each([0, -5, 1.5, 51])("refuse la quantité %s sans toucher au stock", async (quantity) => {
-    const created = jeko.created;
+    const created = jeko.state.created;
     const result = await onlineOrder(quantity);
 
     expect(result.error).toBe("Quantité invalide.");
     expect(await stockOf(TRIPOD)).toBe(5);
     expect(await countTestOrders()).toBe(0);
-    expect(jeko.created).toBe(created);
+    expect(jeko.state.created).toBe(created);
   });
 
   it("refuse une quantité supérieure au stock, sans rien réserver", async () => {
-    const created = jeko.created;
+    const created = jeko.state.created;
     const result = await onlineOrder(6);
 
     expect(result.error).toMatch(/Il ne reste que 5 exemplaire/);
     expect(await stockOf(TRIPOD)).toBe(5);
     expect(await countTestOrders()).toBe(0);
-    expect(jeko.created).toBe(created);
+    expect(jeko.state.created).toBe(created);
   });
 
   it("refuse un produit non publié", async () => {
@@ -243,7 +203,7 @@ describe("réservation à la commande", () => {
 describe("échec du prestataire de paiement", () => {
   it("rend le stock, annule la commande et ne montre au client qu'un message générique", async () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
-    jeko.createFails = true;
+    jeko.state.createFails = true;
 
     const result = await onlineOrder(2);
 
@@ -290,7 +250,7 @@ describe("libération des réservations expirées", () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
     const { reference } = await onlineOrder(2);
     await ageOrder(reference!, 45);
-    jeko.down = true;
+    jeko.state.down = true;
 
     const { releasedOrderIds } = await releaseExpiredReservations();
 
@@ -303,7 +263,7 @@ describe("libération des réservations expirées", () => {
     const { reference } = await onlineOrder(2);
     await ageOrder(reference!, 45);
     const before = await orderByReference(reference!);
-    jeko.requests.get(before.payment_ref!)!.status = "success";
+    jeko.settle(before.payment_ref!, { status: "success" });
 
     const { releasedOrderIds, paidOrderIds } = await releaseExpiredReservations();
 
@@ -320,7 +280,7 @@ describe("synchronisation du paiement", () => {
   it("paiement refusé : commande annulée et stock rendu", async () => {
     const { reference } = await onlineOrder(2);
     const { payment_ref } = await orderByReference(reference!);
-    jeko.requests.get(payment_ref!)!.status = "error";
+    jeko.settle(payment_ref!, { status: "error" });
 
     const sync = await syncOrderPayment({ paymentRef: payment_ref! });
 
@@ -332,15 +292,15 @@ describe("synchronisation du paiement", () => {
   it("webhook rejoué deux fois : un seul paiement enregistré, un seul message au client", async () => {
     const { reference } = await onlineOrder(1);
     const { payment_ref } = await orderByReference(reference!);
-    jeko.requests.get(payment_ref!)!.status = "success";
+    jeko.settle(payment_ref!, { status: "success" });
     // Les deux appels lisent la commande impayee avant que l'un d'eux n'ecrive.
-    jeko.holdUntil = 2;
+    jeko.state.holdUntil = 2;
 
     const [first, second] = await Promise.all([
       syncOrderPayment({ paymentRef: payment_ref! }),
       syncOrderPayment({ paymentRef: payment_ref! }),
     ]);
-    jeko.holdUntil = 0;
+    jeko.state.holdUntil = 0;
     const paidAt = (await orderByReference(reference!)).paid_at;
     const third = await syncOrderPayment({ paymentRef: payment_ref! });
 
@@ -352,7 +312,7 @@ describe("synchronisation du paiement", () => {
   it("signale en admin un montant confirmé différent du total, sans bloquer le paiement", async () => {
     const { reference } = await onlineOrder(1);
     const { payment_ref } = await orderByReference(reference!);
-    Object.assign(jeko.requests.get(payment_ref!)!, { status: "success", amountCents: 4400000 });
+    jeko.settle(payment_ref!, { status: "success", amountCents: 4400000 });
 
     await syncOrderPayment({ reference: reference! });
 
@@ -366,7 +326,7 @@ describe("synchronisation du paiement", () => {
     await ageOrder(reference!, 31);
     await releaseExpiredReservations();
     const { payment_ref } = await orderByReference(reference!);
-    jeko.requests.get(payment_ref!)!.status = "success";
+    jeko.settle(payment_ref!, { status: "success" });
 
     await syncOrderPayment({ paymentRef: payment_ref! });
 
@@ -374,5 +334,53 @@ describe("synchronisation du paiement", () => {
     expect(order.status).toBe("annulee");
     expect(order.paid_at).not.toBeNull();
     expect(order.payment_error).toMatch(/Paiement reçu après l'annulation/);
+  });
+});
+
+describe("appels à Jeko", () => {
+  it("borne chaque appel dans le temps", async () => {
+    const { reference } = await onlineOrder(1);
+    await syncOrderPayment({ reference: reference! });
+
+    expect(jeko.state.calls.map((call) => call.method)).toEqual(["POST", "GET"]);
+    for (const call of jeko.state.calls) expect(call.signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it("panne réseau à la création : commande annulée, stock rendu, création jamais rejouée", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    jeko.state.createNetworkError = true;
+
+    const result = await onlineOrder(2);
+
+    expect(result.error).toBe("Erreur lors du paiement. Réessayez ou contactez-nous si le problème persiste.");
+    expect(jeko.state.calls.filter((call) => call.method === "POST")).toHaveLength(1);
+    expect(await stockOf(TRIPOD)).toBe(5);
+    const [order] = await sql<Array<{ status: string }>>`SELECT status FROM orders WHERE customer_name = ${CUSTOMER}`;
+    expect(order.status).toBe("annulee");
+  });
+
+  it("vérification : une panne passagère est rejouée et le paiement validé", async () => {
+    const { reference } = await onlineOrder(1);
+    const { payment_ref } = await orderByReference(reference!);
+    jeko.settle(payment_ref!, { status: "success" });
+    jeko.state.failingChecks = 1;
+
+    const sync = await syncOrderPayment({ reference: reference! });
+
+    expect(sync).toMatchObject({ kind: "checked", paid: true });
+    expect(jeko.state.checks).toBe(2);
+    expect((await orderByReference(reference!)).status).toBe("recue");
+  });
+
+  it("vérification : Jeko en panne durable, paiement laissé en attente sans insister", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const { reference } = await onlineOrder(1);
+    jeko.state.failingChecks = 10;
+
+    const sync = await syncOrderPayment({ reference: reference! });
+
+    expect(sync.kind).toBe("unverified");
+    expect(jeko.state.checks).toBe(2);
+    expect((await orderByReference(reference!)).status).toBe("attente_paiement");
   });
 });
