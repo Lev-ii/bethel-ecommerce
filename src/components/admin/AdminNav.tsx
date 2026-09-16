@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ExternalLink, LayoutDashboard, Package, ShoppingCart } from "lucide-react";
+import { ExternalLink, LayoutDashboard, Package, ScrollText, ShoppingCart } from "lucide-react";
 import { KelvinBar } from "@/components/ui/Primitives";
 import { Logo } from "@/components/layout/Logo";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
@@ -12,6 +12,7 @@ const links = [
   { href: "/admin", label: "Tableau de bord", icon: LayoutDashboard },
   { href: "/admin/produits", label: "Produits", icon: Package },
   { href: "/admin/commandes", label: "Commandes", icon: ShoppingCart },
+  { href: "/admin/journal", label: "Journal", icon: ScrollText },
 ];
 
 export function AdminNav() {
