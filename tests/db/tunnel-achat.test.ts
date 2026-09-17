@@ -384,3 +384,31 @@ describe("appels à Jeko", () => {
     expect((await orderByReference(reference!)).status).toBe("attente_paiement");
   });
 });
+
+describe("commandes simultanées", () => {
+  it("paniers croisés sur les mêmes produits : aucun interblocage, aucun message technique", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    await sql`UPDATE products SET stock = 500 WHERE id IN (${TRIPOD}, ${MIC})`;
+    const carts = Array.from({ length: 120 }, (_, i) =>
+      i % 2 === 0
+        ? [{ productId: TRIPOD, quantity: 1 }, { productId: MIC, quantity: 1 }]
+        : [{ productId: MIC, quantity: 1 }, { productId: TRIPOD, quantity: 1 }]
+    );
+
+    const results = await Promise.all(
+      carts.map((items) =>
+        placeOrder({
+          customerName: CUSTOMER,
+          customerPhone: "+225 07 00 00 00 01",
+          deliveryMode: "retrait",
+          paymentMethod: "especes-retrait",
+          items,
+        })
+      )
+    );
+
+    expect(results.map((r) => r.error).filter(Boolean)).toEqual([]);
+    expect(await stockOf(TRIPOD)).toBe(380);
+    expect(await stockOf(MIC)).toBe(380);
+  });
+});
