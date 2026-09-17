@@ -1,11 +1,12 @@
 import Link from "next/link";
-import { Pencil, Plus } from "lucide-react";
+import { FolderInput, Pencil, Plus } from "lucide-react";
 import { GearImage } from "@/components/product/GearImage";
 import { StockBadge } from "@/components/ui/Primitives";
 import { StockStepper, PublishToggle } from "@/components/admin/RowActions";
 import { formatPrice } from "@/lib/format";
-import { categories } from "@/lib/data/catalog";
-import { getAllProducts } from "@/lib/repository";
+import { SubmitButton } from "@/components/ui/Form";
+import { moveProductsAction } from "@/lib/admin/category-actions";
+import { getAllProducts, getCategories } from "@/lib/repository";
 
 /**
  * Liste du catalogue cote administration.
@@ -21,7 +22,7 @@ export async function ProductsTable({
   query?: string;
   notice?: React.ReactNode;
 }) {
-  const all = await getAllProducts();
+  const [all, categories] = await Promise.all([getAllProducts(), getCategories()]);
   const needle = query?.toLowerCase().trim();
   const products = needle
     ? all.filter((p) =>
@@ -64,10 +65,42 @@ export async function ProductsTable({
         />
       </form>
 
+      {/* Deplacement groupe : les cases des lignes appartiennent a ce formulaire
+          (attribut form), ce qui marche aussi sans JavaScript. */}
+      {products.length > 0 ? (
+        <form
+          id="deplacer-produits"
+          action={moveProductsAction}
+          className="card flex flex-wrap items-end gap-3 p-4"
+        >
+          <div className="min-w-56">
+            <label htmlFor="move-category" className="field-label">
+              Déplacer les produits cochés vers
+            </label>
+            <select id="move-category" name="category" required defaultValue="" className="field">
+              <option value="" disabled>
+                Choisir une catégorie...
+              </option>
+              {categories.map((c) => (
+                <option key={c.slug} value={c.slug}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <SubmitButton pendingLabel="Déplacement..." className="btn-outline">
+            <FolderInput size={15} aria-hidden /> Déplacer
+          </SubmitButton>
+        </form>
+      ) : null}
+
       <div className="card overflow-hidden">
         <table className="hidden w-full text-sm md:table">
           <thead>
             <tr className="border-b border-line bg-bg-2 text-left">
+              <th scope="col" className="w-10 px-4 py-3">
+                <span className="sr-only">Sélection</span>
+              </th>
               <Th>Produit</Th>
               <Th>Prix</Th>
               <Th>Stock</Th>
@@ -78,6 +111,16 @@ export async function ProductsTable({
           <tbody className="divide-y divide-line">
             {products.map((p) => (
               <tr key={p.id} className={p.published ? "" : "opacity-60"}>
+                <td className="px-4 py-3">
+                  <input
+                    type="checkbox"
+                    name="id"
+                    value={p.id}
+                    form="deplacer-produits"
+                    aria-label={`Sélectionner ${p.name}`}
+                    className="h-4 w-4 accent-brand"
+                  />
+                </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-3">
                     <GearImage
@@ -133,6 +176,14 @@ export async function ProductsTable({
           {products.map((p) => (
             <li key={p.id} className={`p-4 ${p.published ? "" : "opacity-60"}`}>
               <div className="flex gap-3">
+                <input
+                  type="checkbox"
+                  name="id"
+                  value={p.id}
+                  form="deplacer-produits"
+                  aria-label={`Sélectionner ${p.name}`}
+                  className="mt-4 h-4 w-4 shrink-0 accent-brand"
+                />
                 <GearImage
                   src={p.image}
                   alt=""
@@ -149,7 +200,7 @@ export async function ProductsTable({
                     {p.name}
                   </Link>
                   <p className="tabular text-sm text-fg-2">
-                    {formatPrice(p.price)}
+                    {formatPrice(p.price)} &middot; {categoryName(p.category)}
                   </p>
                 </div>
                 <StockBadge product={p} />
