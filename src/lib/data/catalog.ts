@@ -58,7 +58,7 @@ export const products: Product[] = [
       { label: "Poids", value: "1,1 kg" },
       { label: "Livre avec", value: "Housse, telecommande BT" },
     ],
-    image: "/produits/trepied.svg",
+    image: "/produits/trepied.jpg",
     featured: true,
     isHero: true,
     published: true,
@@ -81,7 +81,7 @@ export const products: Product[] = [
       { label: "Filetage", value: '1/4"-20' },
       { label: "Poids", value: "310 g" },
     ],
-    image: "/produits/trepied-table.svg",
+    image: "/produits/trepied-table.jpg",
     published: true,
   },
   {
@@ -103,7 +103,7 @@ export const products: Product[] = [
       { label: "Connectique", value: "USB-C, Lightning, jack 3,5 mm" },
       { label: "Poids emetteur", value: "9 g" },
     ],
-    image: "/produits/micro-cravate.svg",
+    image: "/produits/micro-cravate.png",
     featured: true,
     published: true,
   },
@@ -126,7 +126,7 @@ export const products: Product[] = [
       { label: "Sortie casque", value: "Jack 3,5 mm, zero latence" },
       { label: "Filetage", value: '5/8" avec adaptateur 3/8"' },
     ],
-    image: "/produits/micro-studio.svg",
+    image: "/produits/micro-studio.jpg",
     published: true,
   },
   {
@@ -149,7 +149,7 @@ export const products: Product[] = [
       { label: "Alimentation", value: "Secteur ou batterie NP-F" },
       { label: "Commande", value: "Molette + application" },
     ],
-    image: "/produits/panneau-led.svg",
+    image: "/produits/panneau-led.jpg",
     featured: true,
     published: true,
   },
@@ -173,7 +173,7 @@ export const products: Product[] = [
       { label: "Hauteur du pied", value: "70 - 200 cm" },
       { label: "Alimentation", value: "Secteur, cable 3 m" },
     ],
-    image: "/produits/ring-light.svg",
+    image: "/produits/ring-light.jpg",
     published: true,
   },
   {
@@ -195,7 +195,7 @@ export const products: Product[] = [
       { label: "Grille", value: "Nid d'abeille incluse" },
       { label: "Poids", value: "1,4 kg" },
     ],
-    image: "/produits/softbox.svg",
+    image: "/produits/softbox.jpg",
     published: true,
   },
   {
@@ -217,7 +217,7 @@ export const products: Product[] = [
       { label: "Classe", value: "V30 / U3 / A2" },
       { label: "Livre avec", value: "Adaptateur SD" },
     ],
-    image: "/produits/carte-sd.svg",
+    image: "/produits/micro-sd.jpg",
     published: true,
   },
   {
@@ -239,7 +239,7 @@ export const products: Product[] = [
       { label: "Affichage", value: "Pourcentage LED" },
       { label: "Poids", value: "430 g" },
     ],
-    image: "/produits/batterie.svg",
+    image: "/produits/batterie.png",
     published: true,
   },
   {
@@ -260,7 +260,7 @@ export const products: Product[] = [
       { label: "Blindage", value: "Double" },
       { label: "Section", value: "2 x 0,22 mm2" },
     ],
-    image: "/produits/cable-xlr.svg",
+    image: "/produits/cable-xlr.jpg",
     published: true,
   },
   {
@@ -282,7 +282,7 @@ export const products: Product[] = [
       { label: "Poids", value: "490 g" },
       { label: "Recharge", value: "USB-C" },
     ],
-    image: "/produits/stabilisateur.svg",
+    image: "/produits/stabilisateur.jpg",
     published: true,
   },
   {
@@ -302,7 +302,7 @@ export const products: Product[] = [
       { label: "Attenuation", value: "Environ 20 dB de bruit de vent" },
       { label: "Fixation", value: "Bague elastique" },
     ],
-    image: "/produits/bonnette.svg",
+    image: "/produits/bonnette.jpg",
     published: true,
   },
   {

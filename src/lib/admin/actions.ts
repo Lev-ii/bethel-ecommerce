@@ -197,7 +197,7 @@ export async function createProduct(formData: FormData) {
     // L'identifiant est genere avant l'envoi de la photo : il sert de prefixe
     // de rangement dans le bucket.
     const uploadedImages = await saveProductImages(formData, id);
-    const image = uploadedImages[0] ?? "/produits/trepied.svg";
+    const image = uploadedImages[0] ?? "/produits/sans-photo.svg";
 
     slug = await uniqueSlug(slugify(fields.name));
 
