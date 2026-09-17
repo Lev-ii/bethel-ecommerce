@@ -14,6 +14,11 @@ export const AUDIT_ACTIONS = {
   "product.published": "Produit mis en ligne",
   "product.unpublished": "Produit retiré de la vente",
   "product.image_deleted": "Photo supprimée",
+  "product.category_moved": "Produit changé de catégorie",
+  "category.created": "Catégorie créée",
+  "category.updated": "Catégorie modifiée",
+  "category.reordered": "Catégorie déplacée dans le menu",
+  "category.deleted": "Catégorie supprimée",
   "order.status_changed": "Statut de commande changé",
   "auth.admin_login": "Connexion administrateur",
   "auth.admin_login_failed": "Connexion administrateur refusée",
@@ -24,7 +29,8 @@ export const AUDIT_ACTIONS = {
 export type AuditAction = keyof typeof AUDIT_ACTIONS;
 
 export const AUDIT_CATEGORIES = {
-  produits: { label: "Produits", actions: ["product.created", "product.updated", "product.deleted", "product.stock_adjusted", "product.published", "product.unpublished", "product.image_deleted"] },
+  produits: { label: "Produits", actions: ["product.created", "product.updated", "product.deleted", "product.stock_adjusted", "product.published", "product.unpublished", "product.image_deleted", "product.category_moved"] },
+  categories: { label: "Catégories", actions: ["category.created", "category.updated", "category.reordered", "category.deleted"] },
   commandes: { label: "Commandes", actions: ["order.status_changed"] },
   connexions: { label: "Connexions", actions: ["auth.admin_login", "auth.admin_login_failed", "auth.password_reset"] },
   systeme: { label: "Système", actions: ["demo.reset"] },
@@ -56,6 +62,9 @@ const FIELD_LABELS: Record<string, string> = {
   position: "Position de la photo",
   status: "Statut",
   paidAt: "Encaissement",
+  tagline: "Accroche",
+  slug: "Adresse",
+  productsMoved: "Produits déplacés",
   correction: "Correction",
 };
 
