@@ -194,7 +194,7 @@ export default async function AccueilPage() {
       {/* Selection */}
       <section className="shell pb-14">
         <SectionHeading
-          eyebrow="Selection"
+          eyebrow="Sélection"
           title="Les plus achetés"
           action={
             <Link

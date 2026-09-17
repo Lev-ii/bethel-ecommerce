@@ -30,7 +30,7 @@ export default async function PanierPage({
   return (
     <div className="shell py-10 lg:py-14">
       <header className="mb-8">
-        <Eyebrow>Etape 1 sur 3</Eyebrow>
+        <Eyebrow>Étape 1 sur 3</Eyebrow>
         <h1 className="mt-2 text-3xl sm:text-4xl">Mon panier</h1>
       </header>
       {message ? (

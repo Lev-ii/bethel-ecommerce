@@ -92,7 +92,7 @@ export const orders: Order[] = [
     lines: [
       {
         productId: "p-001",
-        name: "Trepied telephone 160 cm",
+        name: "Trépied téléphone 160 cm",
         unitPrice: 24500,
         quantity: 1,
       },
@@ -117,7 +117,7 @@ export const orders: Order[] = [
     lines: [
       {
         productId: "p-011",
-        name: "Stabilisateur 3 axes telephone",
+        name: "Stabilisateur 3 axes téléphone",
         unitPrice: 68000,
         quantity: 1,
       },
