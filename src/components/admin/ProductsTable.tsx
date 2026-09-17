@@ -95,17 +95,20 @@ export async function ProductsTable({
       ) : null}
 
       <div className="card overflow-hidden">
-        <table className="hidden w-full text-sm md:table">
+        <table className="hidden w-full table-fixed text-sm xl:table">
+          {/* Tableau a partir de 1280 px : en dessous, le nom n'aurait plus la place
+              d'etre lisible et la liste passe en cartes. Largeurs fixes sur les
+              en-tetes : seul le nom s'adapte, et se rogne. */}
           <thead>
             <tr className="border-b border-line bg-bg-2 text-left">
-              <th scope="col" className="w-10 px-4 py-3">
+              <th scope="col" className="relative w-12 px-4 py-3">
                 <span className="sr-only">Sélection</span>
               </th>
               <Th>Produit</Th>
-              <Th>Prix</Th>
-              <Th>Stock</Th>
-              <Th>État</Th>
-              <Th align="right">Actions</Th>
+              <Th className="w-40">Prix</Th>
+              <Th className="w-36">Stock</Th>
+              <Th className="w-36">État</Th>
+              <Th align="right" className="w-44">Actions</Th>
             </tr>
           </thead>
           <tbody className="divide-y divide-line">
@@ -138,7 +141,7 @@ export async function ProductsTable({
                       >
                         {p.name}
                       </Link>
-                      <p className="text-xs text-fg-3">
+                      <p className="truncate text-xs text-fg-3">
                         {p.brand} &middot; {categoryName(p.category)}
                         {p.isHero ? (
                           <span className="ml-2 rounded-card bg-brand/25 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wide text-brand-deep">
@@ -149,7 +152,7 @@ export async function ProductsTable({
                     </div>
                   </div>
                 </td>
-                <td className="tabular px-4 py-3">{formatPrice(p.price)}</td>
+                <td className="tabular whitespace-nowrap px-4 py-3">{formatPrice(p.price)}</td>
                 <td className="px-4 py-3">
                   <StockStepper id={p.id} stock={p.stock} />
                 </td>
@@ -157,7 +160,7 @@ export async function ProductsTable({
                   <StockBadge product={p} />
                 </td>
                 <td className="px-4 py-3">
-                  <div className="flex items-center justify-end gap-3">
+                  <div className="flex items-center justify-end gap-3 whitespace-nowrap">
                     <Link
                       href={`/admin/produits/${p.id}`}
                       className="inline-flex items-center gap-1 text-sm font-medium underline underline-offset-4"
@@ -172,7 +175,7 @@ export async function ProductsTable({
           </tbody>
         </table>
 
-        <ul className="divide-y divide-line md:hidden">
+        <ul className="divide-y divide-line xl:hidden">
           {products.map((p) => (
             <li key={p.id} className={`p-4 ${p.published ? "" : "opacity-60"}`}>
               <div className="flex gap-3">
@@ -199,11 +202,13 @@ export async function ProductsTable({
                   >
                     {p.name}
                   </Link>
-                  <p className="tabular text-sm text-fg-2">
+                  <p className="tabular truncate text-sm text-fg-2">
                     {formatPrice(p.price)} &middot; {categoryName(p.category)}
                   </p>
                 </div>
-                <StockBadge product={p} />
+                <span className="hidden shrink-0 sm:block">
+                  <StockBadge product={p} />
+                </span>
               </div>
               <div className="mt-3 flex items-center justify-between gap-3">
                 <StockStepper id={p.id} stock={p.stock} />
@@ -241,16 +246,18 @@ export async function ProductsTable({
 function Th({
   children,
   align = "left",
+  className = "",
 }: {
   children: React.ReactNode;
   align?: "left" | "right";
+  className?: string;
 }) {
   return (
     <th
       scope="col"
       className={`px-4 py-3 font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-fg-3 ${
         align === "right" ? "text-right" : ""
-      }`}
+      } ${className}`}
     >
       {children}
     </th>

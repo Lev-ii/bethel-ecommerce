@@ -132,8 +132,21 @@
 }
 
 @layer components {
+  /*
+   * Largeur du contenu de la boutique. Elle grandit avec l'ecran : plafonnee a
+   * 1240 px, elle n'occupait que la moitie d'un ecran de 2560 px.
+   */
   .shell {
-    @apply mx-auto w-full max-w-shell px-5 sm:px-6 lg:px-8;
+    @apply mx-auto w-full max-w-shell px-5 sm:px-6 lg:px-8 2xl:px-10;
+  }
+  @media (min-width: 1536px) {
+    .shell { max-width: 1440px; }
+  }
+  @media (min-width: 1920px) {
+    .shell { max-width: 1720px; }
+  }
+  @media (min-width: 2400px) {
+    .shell { max-width: 2160px; }
   }
 
   .kelvin-bar {

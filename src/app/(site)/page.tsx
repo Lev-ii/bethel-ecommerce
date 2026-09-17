@@ -157,7 +157,7 @@ export default async function AccueilPage() {
           eyebrow="Par usage"
           title="Qu'est-ce que vous cherchez ?"
         />
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-5">
           {categories.map((c) => (
             <Link
               key={c.slug}
@@ -205,7 +205,7 @@ export default async function AccueilPage() {
             </Link>
           }
         />
-        <ProductGrid products={featured} />
+        <ProductGrid products={featured} layout="rangee" />
       </section>
 
       {/* Promotions */}
@@ -213,7 +213,7 @@ export default async function AccueilPage() {
         <section className="border-t border-line bg-bg-2">
           <div className="shell py-14">
             <SectionHeading eyebrow="Prix réduits" title="En promotion" />
-            <ProductGrid products={promos} />
+            <ProductGrid products={promos} layout="rangee" />
           </div>
         </section>
       ) : null}
