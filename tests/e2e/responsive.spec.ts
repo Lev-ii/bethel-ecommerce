@@ -103,6 +103,9 @@ test("produits de l'administration : un nom très long est rogné sans écraser 
     const modify = row.getByRole("link", { name: "Modifier" });
     const box = await modify.boundingBox();
     expect.soft(box && box.x + box.width <= width, `« Modifier » coupé à ${width} px`).toBe(true);
+    // Sur ordinateur, l'action porte son nom en plus de l'icone.
+    const retirer = row.getByRole("button", { name: "Retirer de la vente" });
+    expect.soft(await retirer.innerText(), `texte « Retirer » absent à ${width} px`).toContain("Retirer");
   }
 
   // Cartes en dessous, pastille de stock masquee sur telephone.
@@ -117,5 +120,13 @@ test("produits de l'administration : un nom très long est rogné sans écraser 
     const box = await modify.boundingBox();
     expect.soft(box && box.x + box.width <= width, `« Modifier » coupé (carte) à ${width} px`).toBe(true);
     expect.soft(await card.getByText("En stock", { exact: false }).isVisible(), `pastille visible à ${width} px`).toBe(width >= 640);
+    // Telephone et tablette : icone seule (oeil barre), nom porte par aria-label.
+    const retirer = card.getByRole("button", { name: "Retirer de la vente" });
+    await expect.soft(retirer, `action « Retirer » absente à ${width} px`).toBeVisible();
+    // innerText, et non textContent : le nom est present dans le HTML mais masque.
+    expect.soft((await retirer.innerText()).trim(), `texte affiché à côté de l'icône à ${width} px`).toBe("");
+    expect.soft(await retirer.evaluate((el) => getComputedStyle(el).color), `« Retirer » non rouge à ${width} px`).toBe(
+      "rgb(163, 58, 44)"
+    );
   }
 });

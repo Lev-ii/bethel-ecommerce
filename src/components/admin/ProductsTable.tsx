@@ -163,7 +163,7 @@ export async function ProductsTable({
                   <div className="flex items-center justify-end gap-3 whitespace-nowrap">
                     <Link
                       href={`/admin/produits/${p.id}`}
-                      className="inline-flex items-center gap-1 text-sm font-medium underline underline-offset-4"
+                      className="inline-flex items-center gap-1 text-sm font-medium text-brand-deep underline underline-offset-4"
                     >
                       <Pencil size={13} aria-hidden /> Modifier
                     </Link>
@@ -215,9 +215,9 @@ export async function ProductsTable({
                 <div className="flex items-center gap-3">
                   <Link
                     href={`/admin/produits/${p.id}`}
-                    className="text-sm font-medium underline underline-offset-4"
+                    className="inline-flex items-center gap-1 text-sm font-medium text-brand-deep underline underline-offset-4"
                   >
-                    Modifier
+                    <Pencil size={13} aria-hidden /> Modifier
                   </Link>
                   <PublishToggle id={p.id} published={p.published} />
                 </div>

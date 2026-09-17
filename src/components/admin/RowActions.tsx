@@ -1,4 +1,4 @@
-import { Minus, Plus } from "lucide-react";
+import { Eye, EyeOff, Minus, Plus } from "lucide-react";
 import { adjustStock, togglePublished } from "@/lib/admin/actions";
 
 /**
@@ -54,14 +54,29 @@ export function PublishToggle({
   id: string;
   published: boolean;
 }) {
+  const label = published ? "Retirer de la vente" : "Remettre en vente";
+
   return (
     <form action={togglePublished}>
       <input type="hidden" name="id" value={id} />
+      {/*
+        Retirer de la vente n'est pas une suppression : la fiche reste en base
+        et le bouton propose de la remettre en vente. D'ou l'oeil barre plutot
+        qu'une corbeille, et le vert quand l'action consiste a republier.
+
+        Sous 1280 px, seule l'icone est affichee (la place manque) : le nom de
+        l'action reste porte par aria-label et par l'infobulle.
+      */}
       <button
         type="submit"
-        className="text-sm text-fg-3 underline underline-offset-4 hover:text-fg"
+        aria-label={label}
+        title={label}
+        className={`inline-flex items-center gap-1.5 text-sm font-medium underline-offset-4 hover:underline ${
+          published ? "text-danger" : "text-ok"
+        }`}
       >
-        {published ? "Retirer" : "Publier"}
+        {published ? <EyeOff size={15} aria-hidden /> : <Eye size={15} aria-hidden />}
+        <span className="hidden xl:inline">{published ? "Retirer" : "Publier"}</span>
       </button>
     </form>
   );
