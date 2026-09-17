@@ -26,7 +26,7 @@ export default async function AdminLayout({
       <div className="flex min-h-dvh flex-col lg:flex-row">
         <AdminNav />
         <main className="min-w-0 flex-1 bg-bg-2">
-          <div className="mx-auto w-full max-w-screen-2xl px-5 py-8 sm:px-6 lg:px-10 lg:py-12">
+          <div className="mx-auto w-full max-w-screen-2xl px-5 py-8 sm:px-6 lg:px-10 lg:py-12 min-[1920px]:max-w-[2000px] min-[1920px]:px-14">
             <div className="mb-6 flex flex-wrap items-center justify-end gap-4 text-sm">
               <NotificationPermissionButton />
               <span className="text-fg-2">

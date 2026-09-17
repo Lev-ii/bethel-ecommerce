@@ -36,9 +36,24 @@ export function ProductCard({ product }: { product: Product }) {
   );
 }
 
-export function ProductGrid({ products }: { products: Product[] }) {
+/**
+ * Grille de produits. "catalogue" ajoute des colonnes sur grand ecran ;
+ * "rangee" garde quatre colonnes, pour les selections de quatre produits de
+ * la page d'accueil, qui laisseraient sinon des trous.
+ */
+export function ProductGrid({
+  products,
+  layout = "catalogue",
+}: {
+  products: Product[];
+  layout?: "catalogue" | "rangee";
+}) {
+  const columns =
+    layout === "catalogue"
+      ? "grid-cols-2 lg:grid-cols-4 2xl:grid-cols-5 min-[1920px]:grid-cols-6"
+      : "grid-cols-2 lg:grid-cols-4";
   return (
-    <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+    <div className={`grid gap-4 2xl:gap-5 ${columns}`}>
       {products.map((product) => (
         <ProductCard key={product.id} product={product} />
       ))}

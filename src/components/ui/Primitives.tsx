@@ -27,7 +27,7 @@ export function StockBadge({ product }: { product: Product }) {
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-card border px-2 py-0.5 font-mono text-[11px] uppercase tracking-wide ${tone}`}
+      className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-card border px-2 py-0.5 font-mono text-[11px] uppercase tracking-wide ${tone}`}
     >
       <span
         aria-hidden

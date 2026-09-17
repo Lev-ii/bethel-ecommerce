@@ -52,7 +52,7 @@ export function AdminNav() {
                 <Link
                   href={href}
                   aria-current={active ? "page" : undefined}
-                  className={`flex items-center gap-2.5 whitespace-nowrap rounded-card px-3 py-2.5 text-sm transition-colors ${
+                  className={`relative flex items-center gap-2.5 whitespace-nowrap rounded-card px-3 py-2.5 text-sm transition-colors ${
                     active
                       ? "bg-brand text-brand-ink font-semibold"
                       : "text-sidebar-fg/60 hover:bg-sidebar-fg/5 hover:text-sidebar-fg"
