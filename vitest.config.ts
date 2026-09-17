@@ -4,6 +4,8 @@ import { defineConfig } from "vitest/config";
 const root = fileURLToPath(new URL(".", import.meta.url));
 
 export default defineConfig({
+  // Comme Next : JSX transforme sans import explicite de React.
+  esbuild: { jsx: "automatic" },
   resolve: {
     alias: {
       // "server-only" refuse de se charger hors d'un rendu Next : on le
@@ -22,7 +24,7 @@ export default defineConfig({
       ? ["tests/volume/**/*.test.ts"]
       : process.env.VITEST_DB
         ? ["tests/db/**/*.test.ts"]
-        : ["tests/unit/**/*.test.ts"],
+        : ["tests/unit/**/*.test.{ts,tsx}"],
     // Une seule base partagee : les fichiers ne doivent pas s'executer en parallele.
     fileParallelism: !process.env.VITEST_DB && !process.env.VITEST_VOLUME && !process.env.VITEST_CHARGE,
     reporters: ["default"],
