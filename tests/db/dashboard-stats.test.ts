@@ -15,7 +15,12 @@ let productA = "";
 let productB = "";
 let n = 0;
 
-async function order(at: string, status: string, total: number, lines: Array<[string, number, number]> = []) {
+async function order(
+  at: string,
+  status: string,
+  total: number,
+  lines: Array<[string | null, number, number] | [string | null, number, number, string]> = []
+) {
   n += 1;
   const id = `dash-${n}`;
   await sql`
@@ -24,10 +29,11 @@ async function order(at: string, status: string, total: number, lines: Array<[st
     VALUES (${id}, ${PREFIX + n}, 'Client test', '+225 01 00 00 00', 'retrait',
             'especes-retrait', ${total}, ${status}, ${at})
   `;
-  for (const [productId, quantity, unitPrice] of lines) {
+  for (const [productId, quantity, unitPrice, lineName] of lines) {
+    const name = lineName ?? (productId === productA ? "Trépied A" : "Micro B");
     await sql`
       INSERT INTO order_lines (order_id, product_id, name, unit_price, quantity)
-      VALUES (${id}, ${productId}, ${productId === productA ? "Trépied A" : "Micro B"}, ${unitPrice}, ${quantity})
+      VALUES (${id}, ${productId}, ${name}, ${unitPrice}, ${quantity})
     `;
   }
 }
@@ -57,6 +63,14 @@ beforeAll(async () => {
   await order("2004-12-15T22:00:00Z", "livree", 2000);
   await order("2003-12-31T23:00:00Z", "livree", 400);
   await order("2003-01-01T00:00:00Z", "livree", 300);
+
+  // --- Periode "30j" jusqu'au 30/06/2002 : produit renomme, produit supprime.
+  await order("2002-06-05T10:00:00Z", "livree", 20000, [[productA, 2, 5000, "Ancien nom A"]]);
+  await order("2002-06-20T10:00:00Z", "livree", 5000, [[productA, 1, 5000, "Nouveau nom A"]]);
+  // Plus recente mais annulee : son nom ne compte pas.
+  await order("2002-06-25T10:00:00Z", "annulee", 5000, [[productA, 1, 5000, "Nom annulé"]]);
+  await order("2002-06-10T10:00:00Z", "livree", 8000, [[null, 4, 2000, "Produit retiré"]]);
+  await order("2002-06-12T10:00:00Z", "livree", 3000, [[null, 1, 3000, "Autre produit retiré"]]);
 });
 
 afterAll(async () => {
@@ -162,3 +176,15 @@ describe("produits les plus vus", () => {
   });
 });
 
+describe("produits les plus vendus : renommés ou supprimés", () => {
+  const range = parseDashboardParams({ periode: "30j" }, new Date("2002-06-30T12:00:00Z"));
+
+  it("garde le nom de la vente la plus récente et compte à part les produits supprimés", async () => {
+    const stats = await getDashboardStats(range);
+    expect(stats.topProducts).toEqual([
+      // Produits supprimes : product_id NULL, regroupes, nom de la vente la plus recente.
+      { productId: null, name: "Autre produit retiré", quantity: 5, revenue: 11000 },
+      { productId: productA, name: "Nouveau nom A", quantity: 3, revenue: 15000 },
+    ]);
+  });
+});
