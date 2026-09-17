@@ -248,7 +248,7 @@ export function CheckoutForm({
             />
             <Field
               id="tel"
-              label="Telephone"
+              label="Téléphone"
               type="tel"
               value={form.phone}
               onChange={set("phone")}

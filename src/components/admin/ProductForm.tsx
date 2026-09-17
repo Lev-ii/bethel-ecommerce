@@ -91,7 +91,7 @@ export function ProductForm({
 
           <div>
             <label htmlFor="category" className="field-label">
-              Categorie
+              Catégorie
             </label>
             <select
               id="category"
@@ -316,14 +316,14 @@ export function ProductForm({
                 name="specLabel"
                 defaultValue={spec.label}
                 placeholder="Puissance"
-                aria-label={`Caracteristique ${index + 1}, libelle`}
+                aria-label={`Caractéristique ${index + 1}, libellé`}
                 className="field flex-1"
               />
               <input
                 name="specValue"
                 defaultValue={spec.value}
                 placeholder="45 W"
-                aria-label={`Caracteristique ${index + 1}, valeur`}
+                aria-label={`Caractéristique ${index + 1}, valeur`}
                 className="field flex-1"
               />
               <button

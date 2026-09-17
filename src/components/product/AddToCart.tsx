@@ -15,7 +15,7 @@ export function AddToCart({ product }: { product: Product }) {
     return (
       <div className="space-y-3">
         <button type="button" className="btn-outline w-full" disabled>
-          Epuise
+          Épuisé
         </button>
         <p className="text-sm text-fg-2">
           Ce produit est en rupture. Appelez la boutique pour connaître la date
@@ -40,7 +40,7 @@ export function AddToCart({ product }: { product: Product }) {
         <div
           className="flex items-center rounded-card border border-line"
           role="group"
-          aria-label="Quantite"
+          aria-label="Quantité"
         >
           <button
             type="button"

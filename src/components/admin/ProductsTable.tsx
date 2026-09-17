@@ -59,7 +59,7 @@ export async function ProductsTable({
           name="q"
           type="search"
           defaultValue={query}
-          placeholder="Nom, marque, categorie..."
+          placeholder="Nom, marque, catégorie..."
           className="field"
         />
       </form>
@@ -71,7 +71,7 @@ export async function ProductsTable({
               <Th>Produit</Th>
               <Th>Prix</Th>
               <Th>Stock</Th>
-              <Th>Etat</Th>
+              <Th>État</Th>
               <Th align="right">Actions</Th>
             </tr>
           </thead>

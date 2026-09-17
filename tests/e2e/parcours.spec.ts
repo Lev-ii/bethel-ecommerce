@@ -72,7 +72,7 @@ async function fillCheckout(page: Page, customerName: string) {
   await page.goto("/commande");
   await page.getByRole("button", { name: /Retrait en boutique/ }).click();
   await page.getByLabel("Nom complet").fill(customerName);
-  await page.getByLabel("Telephone").fill("+225 07 07 07 07 07");
+  await page.getByLabel("Téléphone").fill("+225 07 07 07 07 07");
   await page.getByRole("button", { name: /Mobile money/ }).click();
   await page.getByRole("button", { name: "Orange Money", exact: true }).click();
 }
@@ -124,7 +124,7 @@ test("retour arrière depuis Jeko : coordonnées et panier retrouvés", async ({
 
   await expect(page).toHaveURL(/\/commande$/);
   await expect(page.getByLabel("Nom complet")).toHaveValue(customer);
-  await expect(page.getByLabel("Telephone")).toHaveValue("+225 07 07 07 07 07");
+  await expect(page.getByLabel("Téléphone")).toHaveValue("+225 07 07 07 07 07");
   await expect(page.getByRole("button", { name: /Retrait en boutique/ })).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByRole("button", { name: "Orange Money", exact: true })).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByText(/1\s*×/)).toBeVisible();
