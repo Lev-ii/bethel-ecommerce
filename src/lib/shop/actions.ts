@@ -12,6 +12,13 @@ import { cartProblem, deliveryFeeFor, orderTotal } from "@/lib/shop/checkout";
 import { releaseExpiredReservationsQuietly } from "@/lib/shop/reservations";
 import type { PaymentMethod } from "@/lib/types";
 
+/**
+ * Refus a montrer tel quel au client (article indisponible, stock
+ * insuffisant). Toute autre erreur est technique : journalisee, jamais
+ * affichee.
+ */
+class OrderRejection extends Error {}
+
 export interface PlaceOrderInput {
   customerName: string;
   customerPhone: string;
@@ -100,6 +107,10 @@ export async function placeOrder(
       >`
         SELECT id, slug, name, price, stock FROM products
         WHERE id = ANY(${ids}) AND published = TRUE
+        -- Toujours le meme ordre de verrouillage. Sans lui, deux paniers
+        -- contenant les memes produits pouvaient se bloquer mutuellement
+        -- (146 commandes perdues sur 500 paniers croises, tests/charge).
+        ORDER BY id
         FOR UPDATE
       `;
 
@@ -112,10 +123,10 @@ export async function placeOrder(
       for (const item of input.items) {
         const product = byId.get(item.productId);
         if (!product) {
-          throw new Error("Un article de votre panier n'est plus disponible.");
+          throw new OrderRejection("Un article de votre panier n'est plus disponible.");
         }
         if (product.stock < item.quantity) {
-          throw new Error(
+          throw new OrderRejection(
             `Il ne reste que ${product.stock} exemplaire(s) de ${product.name}.`
           );
         }
@@ -166,11 +177,9 @@ export async function placeOrder(
     // immediatement, meme si le paiement echoue ensuite (voir plus bas).
     revalidateTag("products");
   } catch (error) {
-    const message =
-      error instanceof Error
-        ? error.message
-        : "La commande n'a pas pu être enregistrée.";
-    return { error: message };
+    if (error instanceof OrderRejection) return { error: error.message };
+    console.error("[placeOrder] réservation échouée", { orderId, reference }, error);
+    return { error: "La commande n'a pas pu être enregistrée. Réessayez dans un instant." };
   }
 
   let checkoutUrl: string | undefined;
