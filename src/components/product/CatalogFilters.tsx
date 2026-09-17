@@ -3,13 +3,13 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useState, useTransition } from "react";
 import { Search, X } from "lucide-react";
-import { categories } from "@/lib/data/catalog";
+import type { Category } from "@/lib/types";
 
 /**
  * Les filtres vivent dans l'URL : un lien vers une categorie ou une recherche
  * est partageable, et le retour navigateur fonctionne comme attendu.
  */
-export function CatalogFilters({ resultCount }: { resultCount: number }) {
+export function CatalogFilters({ resultCount, categories }: { resultCount: number; categories: Category[] }) {
   const router = useRouter();
   const params = useSearchParams();
   const [pending, startTransition] = useTransition();

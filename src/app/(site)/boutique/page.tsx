@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { ProductGrid } from "@/components/product/ProductCard";
 import { CatalogFilters } from "@/components/product/CatalogFilters";
 import { EmptyState, Eyebrow } from "@/components/ui/Primitives";
-import { getCategory, getProducts } from "@/lib/repository";
+import { getCategories, getCategory, getProducts } from "@/lib/repository";
 import type { CategorySlug } from "@/lib/types";
 
 export const metadata: Metadata = {
@@ -55,7 +55,7 @@ export default async function BoutiquePage({
         <Suspense
           fallback={<div className="h-32" aria-hidden />}
         >
-          <CatalogFilters resultCount={products.length} />
+          <CatalogFilters resultCount={products.length} categories={await getCategories()} />
         </Suspense>
       </div>
 

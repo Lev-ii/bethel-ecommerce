@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { ProductForm } from "@/components/admin/ProductForm";
 import { requireAdmin } from "@/lib/auth/current";
+import { getCategories } from "@/lib/repository";
 
 export const metadata: Metadata = { title: "Ajouter du matériel" };
 
@@ -29,7 +30,7 @@ export default async function NouveauProduitPage({
         </p>
       </header>
 
-      <ProductForm erreur={erreur} />
+      <ProductForm erreur={erreur} categories={await getCategories()} />
     </div>
   );
 }

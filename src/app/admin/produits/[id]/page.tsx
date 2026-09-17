@@ -6,7 +6,7 @@ import { ProductForm } from "@/components/admin/ProductForm";
 import { DeleteProduct } from "@/components/admin/DeleteProduct";
 import { productErrorMessage } from "@/lib/admin/messages";
 import { requireAdmin } from "@/lib/auth/current";
-import { getProductById } from "@/lib/repository";
+import { getCategories, getProductById } from "@/lib/repository";
 
 type Params = Promise<{ id: string }>;
 type Search = Promise<{ erreur?: string }>;
@@ -69,7 +69,7 @@ export default async function ModifierProduitPage({
         </p>
       ) : null}
 
-      <ProductForm product={product} erreur={erreur === "confirmation" ? undefined : erreur} />
+      <ProductForm product={product} categories={await getCategories()} erreur={erreur === "confirmation" ? undefined : erreur} />
 
       <DeleteProduct id={product.id} name={product.name} />
     </div>

@@ -9,21 +9,10 @@ import { assertDemoResetAllowed } from "@/lib/admin/demo-reset";
 import { assertAdmin } from "@/lib/auth/current";
 import { sql } from "@/lib/db/client";
 import { deleteProductImageFile, deleteProductImages, saveProductImage, UploadError } from "@/lib/storage";
-import { categories } from "@/lib/data/catalog";
+import { firstFreeSlug, slugify } from "@/lib/slug";
 import { canAdvanceOrder, orderStatusChange } from "@/lib/format";
 import { notifyCustomerLater, type CustomerEvent } from "@/lib/shop/notifications";
 import type { CategorySlug, OrderStatus, PaymentMethod, Spec } from "@/lib/types";
-
-/** Transforme un nom en identifiant d'URL : "Ring light 18" -> "ring-light-18". */
-function slugify(value: string): string {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 60);
-}
 
 /** Ajoute un suffixe si l'identifiant est deja pris. */
 async function uniqueSlug(base: string, ignoreId?: string): Promise<string> {
@@ -31,11 +20,7 @@ async function uniqueSlug(base: string, ignoreId?: string): Promise<string> {
     SELECT slug FROM products
     WHERE slug LIKE ${base + "%"} ${ignoreId ? sql`AND id <> ${ignoreId}` : sql``}
   `;
-  const taken = new Set(rows.map((r) => r.slug));
-  if (!taken.has(base)) return base;
-  let n = 2;
-  while (taken.has(`${base}-${n}`)) n += 1;
-  return `${base}-${n}`;
+  return firstFreeSlug(base, rows.map((r) => r.slug));
 }
 
 /** Lit les paires libelle / valeur de la fiche technique. */
@@ -77,6 +62,12 @@ function codeOf(error: unknown): string {
   return "inconnue";
 }
 
+/** Les categories vivent en base : la liste peut changer entre deux formulaires. */
+async function assertCategoryExists(slug: string): Promise<void> {
+  const [row] = await sql<Array<{ slug: string }>>`SELECT slug FROM categories WHERE slug = ${slug}`;
+  if (!row) throw invalid("categorie");
+}
+
 interface ParsedFields {
   name: string;
   brand: string;
@@ -107,7 +98,7 @@ function parseFields(formData: FormData): ParsedFields {
 
   if (name.length < 3) throw invalid("nom");
   if (brand.length < 2) throw invalid("marque");
-  if (!categories.some((c) => c.slug === category)) throw invalid("categorie");
+  if (!category) throw invalid("categorie");
   if (headline.length < 5) throw invalid("argument");
   if (!Number.isFinite(price) || price <= 0) throw invalid("prix");
   if (compareAtPrice !== null && (!Number.isFinite(compareAtPrice) || compareAtPrice <= price)) {
@@ -192,6 +183,7 @@ export async function createProduct(formData: FormData) {
   try {
     const admin = await assertAdmin();
     const fields = parseFields(formData);
+    await assertCategoryExists(fields.category);
     const id = randomUUID();
 
     // L'identifiant est genere avant l'envoi de la photo : il sert de prefixe
@@ -282,6 +274,7 @@ export async function updateProduct(formData: FormData) {
     if (!existing) throw invalid("introuvable");
 
     const fields = parseFields(formData);
+    await assertCategoryExists(fields.category);
     const replaceImages = shouldReplaceImages(formData);
     if (replaceImages && formData.getAll("images").some((value) => value instanceof File && value.size > 0)) {
       await deleteProductImages(id);
