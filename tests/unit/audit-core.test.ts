@@ -13,8 +13,18 @@ describe("vocabulaire du journal", () => {
   // Sans ce test, une action ajoutee au code sans migration passerait le
   // typecheck puis ferait echouer l'ecriture en production.
   it("correspond exactement a la contrainte CHECK de la migration", () => {
-    const sql = fs.readFileSync(path.join(process.cwd(), "db", "migrations", "0002_journal_audit.sql"), "utf8");
-    const check = sql.slice(sql.indexOf("action       TEXT NOT NULL CHECK"), sql.indexOf("entity_type"));
+    // La contrainte en vigueur est celle de la derniere migration qui la definit.
+    const dir = path.join(process.cwd(), "db", "migrations");
+    const latest = fs
+      .readdirSync(dir)
+      .sort()
+      .map((file) => fs.readFileSync(path.join(dir, file), "utf8"))
+      .filter((sql) => sql.includes("audit_logs_action_check") || sql.includes("action       TEXT NOT NULL CHECK"))
+      .at(-1)!;
+    const start = latest.includes("ADD CONSTRAINT audit_logs_action_check")
+      ? latest.indexOf("ADD CONSTRAINT audit_logs_action_check")
+      : latest.indexOf("action       TEXT NOT NULL CHECK");
+    const check = latest.slice(start, latest.indexOf("));", start));
     const allowed = [...check.matchAll(/'([a-z_.]+)'/g)].map((m) => m[1]).sort();
     expect(allowed).toEqual(Object.keys(AUDIT_ACTIONS).sort());
   });

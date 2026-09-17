@@ -29,6 +29,7 @@ function isAlert(action: AuditLogRow["action"]) {
 function entityLink(entry: AuditLogRow): string | null {
   if (!entry.entityId) return null;
   if (entry.entityType === "product" && entry.action !== "product.deleted") return `/admin/produits/${entry.entityId}`;
+  if (entry.entityType === "category" && entry.action !== "category.deleted") return "/admin/categories";
   if (entry.entityType === "order" && entry.entityLabel) return `/admin/commandes?q=${encodeURIComponent(entry.entityLabel)}`;
   return null;
 }

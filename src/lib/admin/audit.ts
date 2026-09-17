@@ -14,7 +14,7 @@ export interface AuditEntry {
   actor?: { id: string; email: string } | null;
   /** Email sans compte authentifie, pour une connexion refusee. */
   actorEmail?: string;
-  entityType?: "product" | "order" | "user";
+  entityType?: "product" | "order" | "user" | "category";
   entityId?: string;
   entityLabel?: string;
   changes?: AuditChanges;
@@ -90,7 +90,7 @@ export interface AuditLogRow {
   createdAt: string;
   actorEmail: string | null;
   action: AuditAction;
-  entityType: "product" | "order" | "user" | null;
+  entityType: "product" | "order" | "user" | "category" | null;
   entityId: string | null;
   entityLabel: string | null;
   changes: AuditChanges;
