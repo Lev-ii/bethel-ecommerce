@@ -3,13 +3,14 @@ import { currentUser } from "@/lib/auth/current";
 import { Footer } from "@/components/layout/Footer";
 import { MiniCartDrawer } from "@/components/cart/MiniCartDrawer";
 import { AnnouncementBar } from "@/components/layout/AnnouncementBar";
+import { getCategories } from "@/lib/repository";
 
 export default async function SiteLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const user = await currentUser();
+  const [user, categories] = await Promise.all([currentUser(), getCategories()]);
 
   return (
     <div className="flex min-h-dvh flex-col">
@@ -19,13 +20,13 @@ export default async function SiteLayout({
       >
         Aller au contenu
       </a>
-      <Header user={user} />
+      <Header user={user} categories={categories} />
       <AnnouncementBar />
       <MiniCartDrawer />
       <main id="contenu" className="flex-1">
         {children}
       </main>
-      <Footer isAdmin={user?.role === "ADMIN"} />
+      <Footer isAdmin={user?.role === "ADMIN"} categories={categories} />
     </div>
   );
 }

@@ -11,10 +11,9 @@ import {
   TextArea,
 } from "@/components/ui/Form";
 import { GearImage } from "@/components/product/GearImage";
-import { categories } from "@/lib/data/catalog";
 import { createProduct, updateProduct, deleteProductImage, reorderProductImages } from "@/lib/admin/actions";
 import { productErrorField, productErrorMessage } from "@/lib/admin/messages";
-import type { Product, Spec } from "@/lib/types";
+import type { Category, Product, Spec } from "@/lib/types";
 
 /**
  * Formulaire unique pour la creation et la modification.
@@ -26,8 +25,11 @@ import type { Product, Spec } from "@/lib/types";
 export function ProductForm({
   product,
   erreur,
+  categories,
 }: {
   product?: Product;
+  /** Categories en base, dans l'ordre du menu. */
+  categories: Category[];
   /** Code d'erreur renvoye par l'action, transmis par l'URL. */
   erreur?: string;
 }) {

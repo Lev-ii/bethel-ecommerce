@@ -8,22 +8,23 @@ import { KelvinBar } from "@/components/ui/Primitives";
 import { Logo } from "@/components/layout/Logo";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { useCartCount } from "@/store/cart";
-import { categories } from "@/lib/data/catalog";
-
-const links = [
-  { href: "/boutique", label: "Tout le matériel" },
-  ...categories.map((c) => ({
-    href: `/boutique?categorie=${c.slug}`,
-    label: c.name.split(" ")[0],
-  })),
-  { href: "/suivi", label: "Suivre ma commande" },
-];
+import type { Category } from "@/lib/types";
 
 export function Header({
   user,
+  categories,
 }: {
   user?: { name: string; role: "ADMIN" | "CLIENT" } | null;
+  categories: Category[];
 }) {
+  const links = [
+    { href: "/boutique", label: "Tout le matériel" },
+    ...categories.map((c) => ({
+      href: `/boutique?categorie=${c.slug}`,
+      label: c.name.split(" ")[0],
+    })),
+    { href: "/suivi", label: "Suivre ma commande" },
+  ];
   const pathname = usePathname();
   const count = useCartCount();
   const [open, setOpen] = useState(false);

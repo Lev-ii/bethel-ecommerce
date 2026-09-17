@@ -1,9 +1,9 @@
 import Link from "next/link";
-import { categories } from "@/lib/data/catalog";
+import type { Category } from "@/lib/types";
 import { KelvinBar } from "@/components/ui/Primitives";
 import { Logo } from "@/components/layout/Logo";
 
-export function Footer({ isAdmin = false }: { isAdmin?: boolean }) {
+export function Footer({ isAdmin = false, categories }: { isAdmin?: boolean; categories: Category[] }) {
   return (
     <footer className="mt-20 border-t border-line bg-[#ffed43]">
       <KelvinBar />
@@ -29,7 +29,7 @@ export function Footer({ isAdmin = false }: { isAdmin?: boolean }) {
         </div>
 
         <div className="space-y-3">
-          <p className="eyebrow text-[#16150f]">Categories</p>
+          <p className="eyebrow text-[#16150f]">Catégories</p>
           <ul className="space-y-2 text-sm">
             {categories.map((c) => (
               <li key={c.slug}>

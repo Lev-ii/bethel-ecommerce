@@ -1,12 +1,10 @@
 /** Types metier partages entre la boutique et l'administration. */
 
-export type CategorySlug =
-  | "trepieds"
-  | "microphones"
-  | "eclairage"
-  | "accessoires"
-  | "objectifs"
-  ;
+/**
+ * Identifiant d'URL d'une categorie ("eclairage"). Les categories sont gerees
+ * depuis l'administration : ce n'est plus une liste fermee.
+ */
+export type CategorySlug = string;
 
 export interface Category {
   slug: CategorySlug;
