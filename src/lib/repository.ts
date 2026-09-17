@@ -397,29 +397,58 @@ export async function getDashboardStats(range: DashboardRange): Promise<Dashboar
   `;
   const byStatus = new Map(statusRows.map((r) => [r.status, r.count]));
 
+  // Totaux par produit d'abord, nom ensuite pour les huit retenus seulement,
+  // lu par l'index order_lines_product_idx. Chercher le nom dans l'agregat
+  // (array_agg ... ORDER BY) obligeait a trier toutes les lignes de la
+  // periode, sur disque a fort volume. Un produit supprime garde ses ventes
+  // sous product_id NULL : product_key le rend comparable par egalite.
   const topProducts = await sql<DashboardStats["topProducts"]>`
-    SELECT
-      l.product_id AS "productId",
-      (array_agg(l.name ORDER BY o.created_at DESC))[1] AS name,
-      sum(l.quantity)::int AS quantity,
-      sum(l.quantity * l.unit_price)::float8 AS revenue
-    FROM order_lines l
-    JOIN orders o ON o.id = l.order_id
-    WHERE o.status NOT IN ('annulee', 'attente_paiement')
-      AND o.created_at >= ${range.from}::date
-      AND o.created_at < ${range.to}::date + 1
-    GROUP BY l.product_id
-    ORDER BY quantity DESC, revenue DESC, name
-    LIMIT 8
+    WITH totals AS (
+      SELECT COALESCE(l.product_id, '') AS product_key,
+             min(l.product_id) AS product_id,
+             sum(l.quantity)::int AS quantity,
+             sum(l.quantity * l.unit_price)::float8 AS revenue
+      FROM order_lines l
+      JOIN orders o ON o.id = l.order_id
+      WHERE o.status NOT IN ('annulee', 'attente_paiement')
+        AND o.created_at >= ${range.from}::date
+        AND o.created_at < ${range.to}::date + 1
+      GROUP BY 1
+      ORDER BY quantity DESC, revenue DESC, product_key
+      LIMIT 8
+    ),
+    names AS (
+      -- Nom tel qu'il figurait sur la vente la plus recente de la periode.
+      SELECT DISTINCT ON (COALESCE(l.product_id, '')) COALESCE(l.product_id, '') AS product_key, l.name
+      FROM order_lines l
+      JOIN orders o ON o.id = l.order_id
+      WHERE (
+          l.product_id IN (SELECT product_id FROM totals WHERE product_id IS NOT NULL)
+          OR (l.product_id IS NULL AND EXISTS (SELECT 1 FROM totals WHERE product_id IS NULL))
+        )
+        AND o.status NOT IN ('annulee', 'attente_paiement')
+        AND o.created_at >= ${range.from}::date
+        AND o.created_at < ${range.to}::date + 1
+      ORDER BY COALESCE(l.product_id, ''), o.created_at DESC
+    )
+    SELECT t.product_id AS "productId", n.name, t.quantity, t.revenue
+    FROM totals t
+    JOIN names n ON n.product_key = t.product_key
+    ORDER BY t.quantity DESC, t.revenue DESC, n.name
   `;
 
+  // Regrouper avant de joindre : une ligne par produit a rattacher a son nom,
+  // au lieu d'une par vue (pres d'un demi-million sur 12 mois a fort volume).
   const topViewed = await sql<DashboardStats["topViewed"]>`
-    SELECT v.product_id AS "productId", p.name, count(*)::int AS views
-    FROM product_views v
+    SELECT v.product_id AS "productId", p.name, v.views
+    FROM (
+      SELECT product_id, count(*)::int AS views
+      FROM product_views
+      WHERE day >= ${range.from}::date AND day <= ${range.to}::date
+      GROUP BY product_id
+    ) v
     JOIN products p ON p.id = v.product_id
-    WHERE v.day >= ${range.from}::date AND v.day <= ${range.to}::date
-    GROUP BY v.product_id, p.name
-    ORDER BY views DESC, p.name
+    ORDER BY v.views DESC, p.name
     LIMIT 8
   `;
 
@@ -488,16 +517,25 @@ export async function searchOrders(filters: OrderFilters): Promise<OrderSearchRe
   const pageCount = Math.max(1, Math.ceil(total / ORDER_PAGE_SIZE));
   const page = Math.min(filters.page, pageCount);
 
+  // La page est choisie sur les seuls identifiants, puis detaillee : avec
+  // OFFSET, PostgreSQL calcule les colonnes de chaque ligne sautee, lignes de
+  // commande comprises. Sur 200 000 commandes, la derniere page passait de
+  // 1,6 s a quelques dizaines de millisecondes.
   const rows =
     total === 0
       ? []
       : await sql<OrderRow[]>`
+          WITH page AS (
+            SELECT o.id
+            FROM orders o
+            WHERE TRUE ${scope()}
+              ${filters.status ? sql`AND o.status = ${filters.status}` : sql``}
+            ORDER BY o.created_at DESC, o.id
+            LIMIT ${ORDER_PAGE_SIZE} OFFSET ${(page - 1) * ORDER_PAGE_SIZE}
+          )
           SELECT ${orderColumns}
-          FROM orders o
-          WHERE TRUE ${scope()}
-            ${filters.status ? sql`AND o.status = ${filters.status}` : sql``}
+          FROM page JOIN orders o ON o.id = page.id
           ORDER BY o.created_at DESC, o.id
-          LIMIT ${ORDER_PAGE_SIZE} OFFSET ${(page - 1) * ORDER_PAGE_SIZE}
         `;
 
   return { orders: rows.map(toOrder), total, page, pageCount, countsByStatus };
