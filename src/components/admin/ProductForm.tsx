@@ -146,7 +146,7 @@ export function ProductForm({
         <h2 className="text-lg">Photos</h2>
         <div className="mt-4 flex flex-col gap-5 sm:flex-row sm:items-start">
           <GearImage
-            src={preview ?? product?.image ?? "/produits/trepied.svg"}
+            src={preview ?? product?.image ?? "/produits/sans-photo.svg"}
             alt=""
             size={200}
             padding="p-[12%]"
