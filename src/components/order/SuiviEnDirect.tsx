@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Bell, BellOff, Check, Heart } from "lucide-react";
 import { Celebration } from "@/components/cart/Celebration";
 import { playChime, unlockAudio, watchAudio } from "@/components/ui/sounds";
@@ -40,6 +41,7 @@ export function SuiviEnDirect({
   const [celebrate, setCelebrate] = useState(false);
   const [soundOn, setSoundOn] = useState(false);
   const statusRef = useRef(initialStatus);
+  const router = useRouter();
 
   useEffect(() => watchAudio(setSoundOn), []);
 
@@ -54,12 +56,16 @@ export function SuiviEnDirect({
       setStatus(data.status);
       if (event.kind === "none") return;
       setAnnouncement(event.message);
-      if (event.kind === "delivered") setCelebrate(true);
+      if (event.kind === "delivered") {
+        setCelebrate(true);
+        // Fait apparaitre « Notez vos articles », rendue cote serveur.
+        router.refresh();
+      }
       else void playChime();
     } catch {
       // Reseau coupe : on reessaiera au prochain tour.
     }
-  }, [reference, deliveryMode]);
+  }, [reference, deliveryMode, router]);
 
   useEffect(() => {
     if (isFinalStatus(initialStatus)) return;

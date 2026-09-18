@@ -14,7 +14,8 @@ import {
   getProducts,
   getRelatedProducts,
 } from "@/lib/repository";
-import { getProductReviews } from "@/lib/data/reviews";
+import { formatDate } from "@/lib/format";
+import { getPublishedReviews } from "@/lib/shop/review-store";
 
 type Params = Promise<{ slug: string }>;
 
@@ -42,11 +43,12 @@ export default async function ProduitPage({ params }: { params: Params }) {
   const product = await getProductBySlug(slug);
   if (!product) notFound();
 
-  const [category, related] = await Promise.all([
+  const [category, related, reviews] = await Promise.all([
     getCategory(product.category),
     getRelatedProducts(product),
+    // Avis verifies et publies. Une base injoignable ne fait pas tomber la fiche.
+    getPublishedReviews(product.id).catch(() => ({ reviews: [], average: null, count: 0 })),
   ]);
-  const productReviews = getProductReviews(product.slug);
   const galleryImages = product.images?.length ? product.images : [product.image];
 
   return (
@@ -82,7 +84,14 @@ export default async function ProduitPage({ params }: { params: Params }) {
           <Eyebrow>{product.brand}</Eyebrow>
           <h1 className="mt-2 text-3xl sm:text-4xl">{product.name}</h1>
           <p className="mt-3 text-lg text-fg-2">{product.headline}</p>
-          {productReviews.length > 0 ? <div className="mt-4 flex items-center gap-2"><ReviewStars rating={productReviews[0].rating} /><span className="text-sm text-fg-2">{productReviews.length} avis</span></div> : null}
+          {reviews.count > 0 && reviews.average !== null ? (
+            <a href="#avis-clients" className="mt-4 flex items-center gap-2 hover:underline">
+              <ReviewStars rating={Math.round(reviews.average)} />
+              <span className="text-sm text-fg-2">
+                {reviews.average.toLocaleString("fr-FR")} / 5 · {reviews.count} avis
+              </span>
+            </a>
+          ) : null}
 
           <div className="mt-6 flex flex-wrap items-center gap-4">
             <Price product={product} size="lg" />
@@ -109,7 +118,24 @@ export default async function ProduitPage({ params }: { params: Params }) {
             <p className="mt-2 text-fg-2">{product.description}</p>
           </div>
 
-          {productReviews.length > 0 ? <section className="mt-9"><h2 className="text-lg">Avis clients</h2><div className="mt-3 space-y-4">{productReviews.map((review) => <article key={review.id} className="border-t border-line pt-4"><div className="flex items-center justify-between gap-3"><ReviewStars rating={review.rating} /><span className="text-sm text-fg-3">{review.customer}</span></div><h3 className="mt-2 font-semibold">{review.title}</h3><p className="mt-1 text-sm text-fg-2">{review.body}</p></article>)}</div></section> : null}
+          {reviews.count > 0 ? (
+            <section id="avis-clients" className="mt-9 scroll-mt-24">
+              <h2 className="text-lg">Avis clients</h2>
+              <div className="mt-3 space-y-4">
+                {reviews.reviews.map((review) => (
+                  <article key={review.id} className="border-t border-line pt-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <ReviewStars rating={review.rating} />
+                      <span className="text-sm text-fg-3">
+                        {review.authorName} · <span className="text-ok">Achat vérifié</span> · {formatDate(review.createdAt)}
+                      </span>
+                    </div>
+                    <p className="mt-2 whitespace-pre-line text-sm text-fg-2">{review.body}</p>
+                  </article>
+                ))}
+              </div>
+            </section>
+          ) : null}
 
           <div className="mt-9">
             <h2 className="text-lg">Fiche technique</h2>

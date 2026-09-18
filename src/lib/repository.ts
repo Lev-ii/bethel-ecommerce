@@ -52,7 +52,12 @@ const productColumns = sql`
                      ORDER BY s.position, s.id)
      FROM product_specs s WHERE s.product_id = p.id),
     '[]'::json
-  ) AS specs
+  ) AS specs,
+  -- Avis publies : moyenne et nombre, pour les etoiles des cartes produit.
+  (SELECT round(avg(r.rating)::numeric, 1)::float8 FROM reviews r
+    WHERE r.product_id = p.id AND r.status = 'publie') AS review_average,
+  (SELECT count(*)::int FROM reviews r
+    WHERE r.product_id = p.id AND r.status = 'publie') AS review_count
 `;
 
 async function getCategoriesUncached(): Promise<Category[]> {

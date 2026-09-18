@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import { defineConfig, devices } from "@playwright/test";
-import { APP_PORT, E2E_ADMIN, E2E_CRON_SECRET, E2E_DATABASE_URL, JEKO_PORT } from "./tests/e2e/constantes";
+import { APP_PORT, E2E_ADMIN, E2E_AUTH_SECRET, E2E_CRON_SECRET, E2E_DATABASE_URL, JEKO_PORT } from "./tests/e2e/constantes";
 
 /**
  * Tests de parcours : le site construit et lance comme en production, face a
@@ -26,7 +26,7 @@ function neutralisedDotEnv(): Record<string, string> {
 const serverEnv: Record<string, string> = {
   ...neutralisedDotEnv(),
   DATABASE_URL: E2E_DATABASE_URL,
-  AUTH_SECRET: "secret-de-session-des-tests-de-parcours",
+  AUTH_SECRET: E2E_AUTH_SECRET,
   CRON_SECRET: E2E_CRON_SECRET,
   JEKO_API_BASE: `http://127.0.0.1:${JEKO_PORT}`,
   JEKO_API_KEY: "cle-e2e",

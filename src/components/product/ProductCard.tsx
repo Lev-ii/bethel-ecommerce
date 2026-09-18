@@ -3,6 +3,7 @@ import { Price } from "@/components/ui/Primitives";
 import { stockState } from "@/lib/format";
 import type { Product } from "@/lib/types";
 import { GearImage } from "@/components/product/GearImage";
+import { ReviewStars } from "@/components/product/ReviewStars";
 import { AddToCartCard } from "@/components/product/AddToCartCard";
 
 export function ProductCard({ product }: { product: Product }) {
@@ -24,6 +25,14 @@ export function ProductCard({ product }: { product: Product }) {
           <p className="eyebrow">{product.brand}</p>
           <h3 className="text-base font-semibold leading-snug">{product.name}</h3>
           <p className="line-clamp-2 flex-1 text-sm text-fg-2">{product.headline}</p>
+          {product.rating ? (
+            <p className="flex items-center gap-1.5 text-xs text-fg-2">
+              <ReviewStars rating={Math.round(product.rating.average)} size={13} />
+              <span className="tabular">
+                {product.rating.average.toLocaleString("fr-FR")} ({product.rating.count})
+              </span>
+            </p>
+          ) : null}
           <div className="pt-1">
             <Price product={product} />
           </div>

@@ -43,6 +43,8 @@ export interface Product {
   /** Occupe la fiche technique du hero. Un seul produit a la fois. */
   isHero?: boolean;
   published: boolean;
+  /** Avis publies : moyenne sur 5 et nombre. Absent tant qu'aucun avis n'est publie. */
+  rating?: { average: number; count: number };
 }
 
 export type StockState = "in" | "low" | "out";
