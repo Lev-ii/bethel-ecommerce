@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import postgres from "postgres";
-import { E2E_DATABASE_URL } from "./constantes";
+import { E2E_ADMIN, E2E_DATABASE_URL } from "./constantes";
 
 /**
  * Categories gerees par l'administrateur, dans un vrai navigateur : creer,
@@ -9,7 +9,6 @@ import { E2E_DATABASE_URL } from "./constantes";
  */
 
 const sql = postgres(E2E_DATABASE_URL, { max: 2, onnotice: () => {} });
-const ADMIN = { email: "admin@bethel.store", password: "bethel2026" };
 
 test.afterAll(async () => {
   await sql.end();
@@ -24,8 +23,8 @@ test.beforeEach(async ({ context }) => {
 
 async function signIn(page: Page) {
   await page.goto("/connexion?suite=/admin");
-  await page.getByLabel("Email").fill(ADMIN.email);
-  await page.getByLabel("Mot de passe", { exact: true }).fill(ADMIN.password);
+  await page.getByLabel("Email").fill(E2E_ADMIN.email);
+  await page.getByLabel("Mot de passe", { exact: true }).fill(E2E_ADMIN.password);
   await page.getByRole("button", { name: "Se connecter" }).click();
   await expect(page).toHaveURL(/:3100\/admin$/);
 }

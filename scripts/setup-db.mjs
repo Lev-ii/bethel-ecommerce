@@ -163,14 +163,20 @@ try {
     await sql`SELECT count(*)::text AS count FROM users WHERE role = 'ADMIN'`;
   if (Number(admins) > 0) {
     console.log("     Un administrateur existe deja.");
-  } else {
+  } else if (process.env.ADMIN_EMAIL && process.env.ADMIN_PASSWORD) {
+    // Identifiants lus dans l'environnement : aucun mot de passe par defaut
+    // dans le depot, qui est public.
     await sql`
       INSERT INTO users (id, email, name, password_hash, role)
-      VALUES (${randomUUID()}, 'admin@bethel.store', 'Administrateur',
-              ${await hash("bethel2026")}, 'ADMIN')
+      VALUES (${randomUUID()}, ${process.env.ADMIN_EMAIL.trim()},
+              ${process.env.ADMIN_NAME?.trim() || "Administrateur"},
+              ${await hash(process.env.ADMIN_PASSWORD)}, 'ADMIN')
       ON CONFLICT (email) DO NOTHING
     `;
-    console.log("     admin@bethel.store / bethel2026  — a changer !");
+    console.log(`     Compte cree : ${process.env.ADMIN_EMAIL.trim()}`);
+  } else {
+    console.log("     Aucun administrateur. Creez-le avec :");
+    console.log("       npm run admin:create -- <email>");
   }
 
   // Verification finale : plutot que de laisser deviner, on affiche l'etat

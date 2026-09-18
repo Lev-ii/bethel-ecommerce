@@ -14,6 +14,12 @@ import requests
 # "next dev" ecoute sur 3000 par defaut. Surcharger avec BETHEL_BASE_URL si le
 # serveur tourne ailleurs.
 BASE = os.environ.get("BETHEL_BASE_URL", "http://localhost:3000")
+# Identifiants de l'administrateur a tester : jamais ecrits dans le depot.
+ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL")
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD")
+if not ADMIN_EMAIL or not ADMIN_PASSWORD:
+    print("ADMIN_EMAIL et ADMIN_PASSWORD sont requis (compte administrateur de la base de test).")
+    sys.exit(1)
 
 ok_count = 0
 fail_count = 0
@@ -97,7 +103,7 @@ print("\n===== 2. Connexion administrateur =====")
 admin = requests.Session()
 page = admin.get(BASE + "/connexion").text
 fields = hidden_fields(page)
-fields.update({"email": "admin@bethel.store", "password": "mauvais-mot-de-passe"})
+fields.update({"email": ADMIN_EMAIL, "password": "mauvais-mot-de-passe"})
 r = post_form(admin, BASE + "/connexion", fields)
 check(
     "un mauvais mot de passe est refuse",
@@ -111,7 +117,7 @@ check(
 
 page = admin.get(BASE + "/connexion").text
 fields = hidden_fields(page)
-fields.update({"email": "admin@bethel.store", "password": "bethel2026"})
+fields.update({"email": ADMIN_EMAIL, "password": ADMIN_PASSWORD})
 r = post_form(admin, BASE + "/connexion", fields)
 check("le bon mot de passe ouvre une session", "bethel_session" in admin.cookies)
 
@@ -336,7 +342,7 @@ print("\n===== 8. Deconnexion =====")
 # qu'en production, ou le cookie porte Secure.
 poseur = requests.Session()
 fields = hidden_fields(poseur.get(BASE + "/connexion").text)
-fields.update({"email": "admin@bethel.store", "password": "bethel2026"})
+fields.update({"email": ADMIN_EMAIL, "password": ADMIN_PASSWORD})
 r = post_form(poseur, BASE + "/connexion", fields, allow_redirects=False)
 pose = r.headers.get("set-cookie", "")
 

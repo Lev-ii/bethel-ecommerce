@@ -26,3 +26,12 @@ if (!exists) {
 await sql.end();
 
 execFileSync("node", ["scripts/setup-db.mjs", "--force"], { stdio: "inherit", env: process.env });
+
+// Administrateur des parcours : cree, ou remis a ces identifiants si la base
+// en gardait un autre (setup-db ne touche jamais a un compte existant).
+if (process.env.ADMIN_EMAIL && process.env.ADMIN_PASSWORD) {
+  execFileSync("node", ["scripts/admin-create.mjs", process.env.ADMIN_EMAIL, process.env.ADMIN_PASSWORD], {
+    stdio: "inherit",
+    env: process.env,
+  });
+}

@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import { defineConfig, devices } from "@playwright/test";
-import { APP_PORT, E2E_CRON_SECRET, E2E_DATABASE_URL, JEKO_PORT } from "./tests/e2e/constantes";
+import { APP_PORT, E2E_ADMIN, E2E_CRON_SECRET, E2E_DATABASE_URL, JEKO_PORT } from "./tests/e2e/constantes";
 
 /**
  * Tests de parcours : le site construit et lance comme en production, face a
@@ -34,6 +34,8 @@ const serverEnv: Record<string, string> = {
   JEKO_STORE_ID: "boutique-e2e",
   NEXT_PUBLIC_APP_URL: `http://127.0.0.1:${APP_PORT}`,
   NEXT_DIST_DIR: ".next-e2e",
+  ADMIN_EMAIL: E2E_ADMIN.email,
+  ADMIN_PASSWORD: E2E_ADMIN.password,
   NEXT_TELEMETRY_DISABLED: "1",
 };
 
