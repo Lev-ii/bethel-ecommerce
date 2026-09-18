@@ -68,13 +68,13 @@ async function addToCart(page: Page, product: Product) {
     .toBe(1);
 }
 
-async function fillCheckout(page: Page, customerName: string) {
+async function fillCheckout(page: Page, customerName: string, operator = "Orange Money") {
   await page.goto("/commande");
   await page.getByRole("button", { name: /Retrait en boutique/ }).click();
   await page.getByLabel("Nom complet").fill(customerName);
   await page.getByLabel("Téléphone").fill("+225 07 07 07 07 07");
   await page.getByRole("button", { name: /Mobile money/ }).click();
-  await page.getByRole("button", { name: "Orange Money", exact: true }).click();
+  await page.getByRole("button", { name: operator, exact: true }).click();
 }
 
 async function payOnJeko(page: Page) {
@@ -110,6 +110,30 @@ test("client invité : commande, paiement mobile money, confirmation", async ({ 
   await expect
     .poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("bethel-panier") ?? "{}")?.state?.items?.length ?? 0))
     .toBe(0);
+});
+
+test("paiement Wave : proposé avec les autres opérateurs et accepté jusqu'à la confirmation", async ({ page }) => {
+  const product = await pickProduct();
+  const customer = `E2E Wave ${Date.now()}`;
+
+  await addToCart(page, product);
+  await page.goto("/commande");
+  await page.getByRole("button", { name: /Mobile money/ }).click();
+  for (const operator of ["Wave", "Orange Money", "MTN Money", "Moov Money", "Djamo"]) {
+    await expect(page.getByRole("button", { name: operator, exact: true })).toBeVisible();
+  }
+  await page.screenshot({ path: "test-results/operateurs.png" });
+
+  await fillCheckout(page, customer, "Wave");
+  await expect(page.getByText("page de paiement sécurisée Wave")).toBeVisible();
+  await payOnJeko(page);
+  await page.getByRole("button", { name: "Payer" }).click();
+
+  await expect(page.getByText("Paiement reçu")).toBeVisible();
+  const [order] = await sql<Array<{ payment_method: string; status: string }>>`
+    SELECT payment_method, status FROM orders WHERE customer_name = ${customer}
+  `;
+  expect(order).toEqual({ payment_method: "wave", status: "recue" });
 });
 
 test("retour arrière depuis Jeko : coordonnées et panier retrouvés", async ({ page }) => {

@@ -13,7 +13,7 @@ import { placeOrder } from "@/lib/shop/actions";
 
 type Errors = Partial<Record<"name" | "phone" | "address" | "city" | "operator", string>>;
 
-type Operator = "orange" | "mtn" | "moov" | "djamo";
+type Operator = "wave" | "orange" | "mtn" | "moov" | "djamo";
 
 // Jeko fige l'operateur a la creation de la demande : sa page de paiement
 // n'autorise pas d'en changer. Le client doit donc le choisir ici.
@@ -30,7 +30,11 @@ type Operator = "orange" | "mtn" | "moov" | "djamo";
  */
 export const CHECKOUT_DRAFT_KEY = "bethel-commande-brouillon";
 
+// Wave en tete : c'est le mobile money le plus utilise en Cote d'Ivoire. Jeko
+// l'accepte (voir JEKO_PAYMENT_METHOD dans lib/shop/payment.ts) ; il manquait
+// seulement ici, et un client ne le trouvait pas au moment de payer.
 const OPERATORS: Array<{ id: Operator; name: string; logo: string }> = [
+  { id: "wave", name: "Wave", logo: "/paiement/wave.png" },
   { id: "orange", name: "Orange Money", logo: "/paiement/orange.png" },
   { id: "mtn", name: "MTN Money", logo: "/paiement/mtn.png" },
   { id: "moov", name: "Moov Money", logo: "/paiement/moov.png" },
@@ -307,7 +311,7 @@ export function CheckoutForm({
               onClick={() => setPayment("mobile-money")}
               title="Mobile money"
               detail={
-                <span className="mt-1.5 flex items-center gap-1.5" aria-label="Orange Money, MTN Money, Moov Money, Djamo">
+                <span className="mt-1.5 flex items-center gap-1.5" aria-label="Wave, Orange Money, MTN Money, Moov Money, Djamo">
                   {OPERATORS.map((o) => (
                     <Image key={o.id} src={o.logo} alt="" width={24} height={24} className="rounded-full" />
                   ))}
@@ -342,7 +346,7 @@ export function CheckoutForm({
               aria-describedby={errors.operator ? "operator-error" : undefined}
             >
               <legend className="field-label">Votre opérateur</legend>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-5">
                 {OPERATORS.map((o) => (
                   <button
                     key={o.id}
