@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { getFallbackCategories, getFallbackProducts } from "@/lib/catalog-fallback";
+import {
+  getFallbackCategories,
+  getFallbackProducts,
+  getFallbackProductsFor,
+  isFreshCatalogEntry,
+} from "@/lib/catalog-fallback";
 
 /**
  * Le repli sert quand la base est injoignable : la boutique doit rester
@@ -28,5 +33,36 @@ describe("catalogue de repli", () => {
 
   it("n'affiche aucun prix nul ou negatif", () => {
     expect(getFallbackProducts().every((p) => p.price > 0)).toBe(true);
+  });
+});
+
+describe("liste de repli filtree comme la base", () => {
+  it("filtre par categorie et trie par prix", () => {
+    const category = getFallbackCategories()[0].slug;
+    const list = getFallbackProductsFor({ category, sort: "prix-croissant" });
+    expect(list.length).toBeGreaterThan(0);
+    expect(list.every((p) => p.category === category)).toBe(true);
+    expect(list.map((p) => p.price)).toEqual([...list.map((p) => p.price)].sort((a, b) => a - b));
+  });
+
+  it("cherche sans tenir compte de la casse", () => {
+    const [first] = getFallbackProducts();
+    expect(getFallbackProductsFor({ search: first.name.toUpperCase() }).map((p) => p.id)).toContain(first.id);
+  });
+});
+
+describe("fraicheur d'une entree du cache du catalogue", () => {
+  const now = 1_000_000;
+  it("est fraiche jusqu'a son age maximal, perimee au-dela", () => {
+    expect(isFreshCatalogEntry(now - 30_000, 30_000, now)).toBe(true);
+    expect(isFreshCatalogEntry(now - 30_001, 30_000, now)).toBe(false);
+  });
+
+  it("reste fraiche si l'horloge d'une autre instance avance un peu", () => {
+    expect(isFreshCatalogEntry(now + 50, 30_000, now)).toBe(true);
+  });
+
+  it("est perimee si l'entree n'a pas de date (ancien format)", () => {
+    expect(isFreshCatalogEntry(undefined, 30_000, now)).toBe(false);
   });
 });

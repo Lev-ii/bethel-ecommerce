@@ -9,8 +9,10 @@ import {
   getFallbackProductById,
   getFallbackProductBySlug,
   getFallbackProducts,
+  getFallbackProductsFor,
   catalogRead,
   isDatabaseUnavailableError,
+  isFreshCatalogEntry,
 } from "@/lib/catalog-fallback";
 import { toOrder, toProduct, toUser, type OrderRow, type ProductRow, type UserRow } from "@/lib/db/rows";
 import { ORDER_PAGE_SIZE, escapeLike, type OrderFilters } from "@/lib/admin/order-filters";
@@ -61,43 +63,66 @@ const productColumns = sql`
     WHERE r.product_id = p.id AND r.status = 'publie') AS review_count
 `;
 
-async function getCategoriesUncached(): Promise<Category[]> {
-  try {
-    const rows = await catalogRead(sql<Array<{ slug: string; name: string; tagline: string }>>`
-      SELECT slug, name, tagline FROM categories ORDER BY position, name
-    `);
-    return rows.map((r) => ({
-      slug: r.slug as CategorySlug,
-      name: r.name,
-      tagline: r.tagline,
-    }));
-  } catch (error) {
-    if (!isDatabaseUnavailableError(error)) throw error;
-    return getFallbackCategories();
-  }
+/**
+ * Cache du catalogue sans valeur perimee.
+ *
+ * unstable_cache (Next 15) sert une entree de plus de `revalidate` secondes
+ * une derniere fois, et ne la rafraichit qu'en arriere-plan. Une fiche restee
+ * sans visite servait donc son ancien etat : produit absent (404 alors qu'il
+ * est en vente), liste sans le produit tout juste ajoute. Chaque entree porte
+ * ici sa date de lecture : trop vieille, on relit la base directement.
+ *
+ * Le catalogue statique de secours n'entre jamais dans le cache : sinon une
+ * coupure de quelques secondes resterait visible tout le temps de l'entree.
+ */
+function catalogCache<Args extends unknown[], T>(
+  read: (...args: Args) => Promise<T>,
+  fallback: (...args: Args) => T,
+  key: string,
+  tags: string[]
+): (...args: Args) => Promise<T> {
+  const cached = unstable_cache(async (...args: Args) => ({ at: Date.now(), value: await read(...args) }), [key], {
+    revalidate: CATALOG_REVALIDATE_SECONDS,
+    tags,
+  });
+  return async (...args: Args) => {
+    try {
+      const entry = await cached(...args);
+      if (isFreshCatalogEntry(entry.at, CATALOG_REVALIDATE_SECONDS * 1000)) return entry.value;
+      return await read(...args);
+    } catch (error) {
+      if (!isDatabaseUnavailableError(error)) throw error;
+      return fallback(...args);
+    }
+  };
 }
-export const getCategories = unstable_cache(getCategoriesUncached, ["categories:list"], {
-  revalidate: CATALOG_REVALIDATE_SECONDS,
-  tags: ["categories"],
-});
+
+async function getCategoriesUncached(): Promise<Category[]> {
+  const rows = await catalogRead(sql<Array<{ slug: string; name: string; tagline: string }>>`
+    SELECT slug, name, tagline FROM categories ORDER BY position, name
+  `);
+  return rows.map((r) => ({
+    slug: r.slug as CategorySlug,
+    name: r.name,
+    tagline: r.tagline,
+  }));
+}
+export const getCategories = catalogCache(getCategoriesUncached, getFallbackCategories, "categories:list", ["categories"]);
 
 async function getCategoryUncached(slug: string): Promise<Category | undefined> {
-  try {
-    const [row] = await catalogRead(sql<Array<{ slug: string; name: string; tagline: string }>>`
-      SELECT slug, name, tagline FROM categories WHERE slug = ${slug}
-    `);
-    return row
-      ? { slug: row.slug as CategorySlug, name: row.name, tagline: row.tagline }
-      : undefined;
-  } catch (error) {
-    if (!isDatabaseUnavailableError(error)) throw error;
-    return getFallbackCategories().find((category) => category.slug === slug);
-  }
+  const [row] = await catalogRead(sql<Array<{ slug: string; name: string; tagline: string }>>`
+    SELECT slug, name, tagline FROM categories WHERE slug = ${slug}
+  `);
+  return row
+    ? { slug: row.slug as CategorySlug, name: row.name, tagline: row.tagline }
+    : undefined;
 }
-export const getCategory = unstable_cache(getCategoryUncached, ["categories:one"], {
-  revalidate: CATALOG_REVALIDATE_SECONDS,
-  tags: ["categories"],
-});
+export const getCategory = catalogCache(
+  getCategoryUncached,
+  (slug: string) => getFallbackCategories().find((category) => category.slug === slug),
+  "categories:one",
+  ["categories"]
+);
 
 export interface ProductQuery {
   category?: CategorySlug;
@@ -109,55 +134,29 @@ export interface ProductQuery {
 async function getProductsUncached(query: ProductQuery = {}): Promise<Product[]> {
   const search = query.search?.trim();
 
-  try {
-    const rows = await catalogRead(sql<ProductRow[]>`
-      SELECT ${productColumns}
-      FROM products p
-      WHERE p.published = TRUE
-        ${query.category ? sql`AND p.category = ${query.category}` : sql``}
-        ${query.inStockOnly ? sql`AND p.stock > 0` : sql``}
-        ${
-          search
-            ? sql`AND (p.name || ' ' || p.brand || ' ' || p.headline) ILIKE ${"%" + search + "%"}`
-            : sql``
-        }
-      ORDER BY
-        ${query.sort === "prix-croissant" ? sql`p.price ASC` : sql``}
-        ${query.sort === "prix-decroissant" ? sql`p.price DESC` : sql``}
-        ${
-          query.sort === "prix-croissant" || query.sort === "prix-decroissant"
-            ? sql``
-            : sql`p.created_at ASC`
-        }
-    `);
-    return rows.map(toProduct);
-  } catch (error) {
-    if (!isDatabaseUnavailableError(error)) throw error;
-
-    const products = getFallbackProducts();
-    const byCategory = query.category ? products.filter((product) => product.category === query.category) : products;
-    const inStock = query.inStockOnly ? byCategory.filter((product) => product.stock > 0) : byCategory;
-    const filteredBySearch = search
-      ? inStock.filter((product) =>
-          `${product.name} ${product.brand} ${product.headline}`
-            .toLowerCase()
-            .includes(search.toLowerCase())
-        )
-      : inStock;
-
-    if (query.sort === "prix-croissant") {
-      return [...filteredBySearch].sort((a, b) => a.price - b.price);
-    }
-    if (query.sort === "prix-decroissant") {
-      return [...filteredBySearch].sort((a, b) => b.price - a.price);
-    }
-    return filteredBySearch;
-  }
+  const rows = await catalogRead(sql<ProductRow[]>`
+    SELECT ${productColumns}
+    FROM products p
+    WHERE p.published = TRUE
+      ${query.category ? sql`AND p.category = ${query.category}` : sql``}
+      ${query.inStockOnly ? sql`AND p.stock > 0` : sql``}
+      ${
+        search
+          ? sql`AND (p.name || ' ' || p.brand || ' ' || p.headline) ILIKE ${"%" + search + "%"}`
+          : sql``
+      }
+    ORDER BY
+      ${query.sort === "prix-croissant" ? sql`p.price ASC` : sql``}
+      ${query.sort === "prix-decroissant" ? sql`p.price DESC` : sql``}
+      ${
+        query.sort === "prix-croissant" || query.sort === "prix-decroissant"
+          ? sql``
+          : sql`p.created_at ASC`
+      }
+  `);
+  return rows.map(toProduct);
 }
-export const getProducts = unstable_cache(getProductsUncached, ["products:list"], {
-  revalidate: CATALOG_REVALIDATE_SECONDS,
-  tags: ["products"],
-});
+export const getProducts = catalogCache(getProductsUncached, getFallbackProductsFor, "products:list", ["products"]);
 
 /**
  * Produit occupant la fiche technique de l'accueil.
@@ -167,88 +166,72 @@ export const getProducts = unstable_cache(getProductsUncached, ["products:list"]
  * produit mis en avant, pour que l'accueil ne se retrouve jamais vide.
  */
 async function getHeroProductUncached(): Promise<Product | undefined> {
-  try {
-    const rows = await catalogRead(sql<ProductRow[]>`
-      SELECT ${productColumns}
-      FROM products p
-      WHERE p.published = TRUE
-      ORDER BY p.is_hero DESC, p.featured DESC, p.created_at ASC
-      LIMIT 1
-    `);
-    return rows[0] ? toProduct(rows[0]) : undefined;
-  } catch (error) {
-    if (!isDatabaseUnavailableError(error)) throw error;
-    return getFallbackHeroProduct();
-  }
+  const rows = await catalogRead(sql<ProductRow[]>`
+    SELECT ${productColumns}
+    FROM products p
+    WHERE p.published = TRUE
+    ORDER BY p.is_hero DESC, p.featured DESC, p.created_at ASC
+    LIMIT 1
+  `);
+  return rows[0] ? toProduct(rows[0]) : undefined;
 }
-export const getHeroProduct = unstable_cache(getHeroProductUncached, ["products:hero"], {
-  revalidate: CATALOG_REVALIDATE_SECONDS,
-  tags: ["products"],
-});
+export const getHeroProduct = catalogCache(getHeroProductUncached, getFallbackHeroProduct, "products:hero", ["products"]);
 
 async function getFeaturedProductsUncached(limit = 4): Promise<Product[]> {
-  try {
-    const rows = await catalogRead(sql<ProductRow[]>`
-      SELECT ${productColumns}
-      FROM products p
-      WHERE p.published = TRUE
-      ORDER BY p.featured DESC, p.created_at ASC
-      LIMIT ${limit}
-    `);
-    return rows.map(toProduct);
-  } catch (error) {
-    if (!isDatabaseUnavailableError(error)) throw error;
-    return getFallbackFeaturedProducts(limit);
-  }
+  const rows = await catalogRead(sql<ProductRow[]>`
+    SELECT ${productColumns}
+    FROM products p
+    WHERE p.published = TRUE
+    ORDER BY p.featured DESC, p.created_at ASC
+    LIMIT ${limit}
+  `);
+  return rows.map(toProduct);
 }
-export const getFeaturedProducts = unstable_cache(getFeaturedProductsUncached, ["products:featured"], {
-  revalidate: CATALOG_REVALIDATE_SECONDS,
-  tags: ["products"],
-});
+export const getFeaturedProducts = catalogCache(
+  getFeaturedProductsUncached,
+  getFallbackFeaturedProducts,
+  "products:featured",
+  ["products"]
+);
 
 async function getProductBySlugUncached(slug: string): Promise<Product | undefined> {
-  try {
-    const [row] = await catalogRead(sql<ProductRow[]>`
-      SELECT ${productColumns} FROM products p
-      WHERE p.slug = ${slug} AND p.published = TRUE
-    `);
-    return row ? toProduct(row) : undefined;
-  } catch (error) {
-    if (!isDatabaseUnavailableError(error)) throw error;
-    return getFallbackProductBySlug(slug);
-  }
+  const [row] = await catalogRead(sql<ProductRow[]>`
+    SELECT ${productColumns} FROM products p
+    WHERE p.slug = ${slug} AND p.published = TRUE
+  `);
+  return row ? toProduct(row) : undefined;
 }
-export const getProductBySlug = unstable_cache(getProductBySlugUncached, ["products:by-slug"], {
-  revalidate: CATALOG_REVALIDATE_SECONDS,
-  tags: ["products"],
-});
+export const getProductBySlug = catalogCache(
+  getProductBySlugUncached,
+  getFallbackProductBySlug,
+  "products:by-slug",
+  ["products"]
+);
 
 async function getRelatedProductsUncached(
   category: CategorySlug,
   excludeId: string,
   limit: number
 ): Promise<Product[]> {
-  try {
-    const rows = await catalogRead(sql<ProductRow[]>`
-      SELECT ${productColumns} FROM products p
-      WHERE p.published = TRUE
-        AND p.category = ${category}
-        AND p.id <> ${excludeId}
-      ORDER BY p.created_at ASC
-      LIMIT ${limit}
-    `);
-    return rows.map(toProduct);
-  } catch (error) {
-    if (!isDatabaseUnavailableError(error)) throw error;
-    return getFallbackProducts()
-      .filter((candidate) => candidate.category === category && candidate.id !== excludeId)
-      .slice(0, limit);
-  }
+  const rows = await catalogRead(sql<ProductRow[]>`
+    SELECT ${productColumns} FROM products p
+    WHERE p.published = TRUE
+      AND p.category = ${category}
+      AND p.id <> ${excludeId}
+    ORDER BY p.created_at ASC
+    LIMIT ${limit}
+  `);
+  return rows.map(toProduct);
 }
-const getRelatedProductsCached = unstable_cache(getRelatedProductsUncached, ["products:related"], {
-  revalidate: CATALOG_REVALIDATE_SECONDS,
-  tags: ["products"],
-});
+const getRelatedProductsCached = catalogCache(
+  getRelatedProductsUncached,
+  (category: CategorySlug, excludeId: string, limit: number) =>
+    getFallbackProducts()
+      .filter((candidate) => candidate.category === category && candidate.id !== excludeId)
+      .slice(0, limit),
+  "products:related",
+  ["products"]
+);
 export function getRelatedProducts(product: Product, limit = 3): Promise<Product[]> {
   return getRelatedProductsCached(product.category, product.id, limit);
 }
