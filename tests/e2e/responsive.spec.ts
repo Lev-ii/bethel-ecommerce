@@ -19,7 +19,7 @@ const LONG_NAME =
 
 const WIDTHS = [375, 768, 1024, 1280, 1440, 1920, 2560];
 const SHOP_PAGES = ["/", "/boutique", `/boutique/${LONG_ID}`, "/panier", "/suivi"];
-const ADMIN_PAGES = ["/admin", "/admin/produits", "/admin/categories", "/admin/avis", "/admin/commandes", "/admin/journal"];
+const ADMIN_PAGES = ["/admin", "/admin/produits", "/admin/categories", "/admin/avis", "/admin/newsletter", "/admin/commandes", "/admin/journal"];
 
 test.beforeAll(async () => {
   const [category] = await sql<Array<{ slug: string }>>`SELECT slug FROM categories ORDER BY position LIMIT 1`;
@@ -68,7 +68,7 @@ test("boutique : aucune page ne déborde, de 375 à 2560 px", async ({ page }) =
 
 test("administration : aucune page ne déborde, de 375 à 2560 px", async ({ page }) => {
   await page.goto("/connexion?suite=/admin");
-  await page.getByLabel("Email").fill(E2E_ADMIN.email);
+  await page.getByLabel("Email", { exact: true }).fill(E2E_ADMIN.email);
   await page.getByLabel("Mot de passe", { exact: true }).fill(E2E_ADMIN.password);
   await page.getByRole("button", { name: "Se connecter" }).click();
   await expect(page).toHaveURL(/:3100\/admin$/);
@@ -78,7 +78,7 @@ test("administration : aucune page ne déborde, de 375 à 2560 px", async ({ pag
 
 test("produits de l'administration : un nom très long est rogné sans écraser les autres colonnes", async ({ page }) => {
   await page.goto("/connexion?suite=/admin/produits");
-  await page.getByLabel("Email").fill(E2E_ADMIN.email);
+  await page.getByLabel("Email", { exact: true }).fill(E2E_ADMIN.email);
   await page.getByLabel("Mot de passe", { exact: true }).fill(E2E_ADMIN.password);
   await page.getByRole("button", { name: "Se connecter" }).click();
   await expect(page).toHaveURL(/:3100\/admin\/produits$/);

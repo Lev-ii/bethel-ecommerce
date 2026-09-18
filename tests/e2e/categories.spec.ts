@@ -23,7 +23,7 @@ test.beforeEach(async ({ context }) => {
 
 async function signIn(page: Page) {
   await page.goto("/connexion?suite=/admin");
-  await page.getByLabel("Email").fill(E2E_ADMIN.email);
+  await page.getByLabel("Email", { exact: true }).fill(E2E_ADMIN.email);
   await page.getByLabel("Mot de passe", { exact: true }).fill(E2E_ADMIN.password);
   await page.getByRole("button", { name: "Se connecter" }).click();
   await expect(page).toHaveURL(/:3100\/admin$/);
