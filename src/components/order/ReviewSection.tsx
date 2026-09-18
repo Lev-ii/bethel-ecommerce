@@ -41,7 +41,7 @@ export function ReviewSection({
         </p>
       ) : null}
 
-      <ul className="mt-5 space-y-5">
+      <ul className="mt-5 grid gap-5 lg:grid-cols-2">
         {order.items.map((item) => (
           <li key={item.productId} className="rounded-card border border-line p-4">
             <div className="flex flex-wrap items-center justify-between gap-2">

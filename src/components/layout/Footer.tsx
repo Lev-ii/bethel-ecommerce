@@ -7,7 +7,7 @@ export function Footer({ isAdmin = false, categories }: { isAdmin?: boolean; cat
   return (
     <footer className="mt-20 border-t border-line bg-[#ffed43]">
       <KelvinBar />
-      <div className="shell grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="shell grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <div className="space-y-3">
           <Logo href={null} className="h-7" variant="dark" />
           <p className="max-w-xs text-sm text-[#46443c]">
