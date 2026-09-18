@@ -2,11 +2,20 @@ import Link from "next/link";
 import type { Category } from "@/lib/types";
 import { KelvinBar } from "@/components/ui/Primitives";
 import { Logo } from "@/components/layout/Logo";
+import { NewsletterForm } from "@/components/layout/NewsletterForm";
 
 export function Footer({ isAdmin = false, categories }: { isAdmin?: boolean; categories: Category[] }) {
   return (
     <footer className="mt-20 border-t border-line bg-[#ffed43]">
       <KelvinBar />
+      <div className="shell grid gap-6 border-b border-[#16150f]/15 py-10 lg:grid-cols-[1fr_minmax(0,32rem)] lg:items-center">
+        <div>
+          <p className="eyebrow text-[#16150f]">Newsletter</p>
+          <p className="mt-2 text-lg font-semibold text-[#16150f]">Nouveautés et promos, en premier.</p>
+          <p className="mt-1 text-sm text-[#46443c]">Un email quand du matériel arrive ou baisse de prix. Pas plus.</p>
+        </div>
+        <NewsletterForm />
+      </div>
       <div className="shell grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <div className="space-y-3">
           <Logo href={null} className="h-7" variant="dark" />
