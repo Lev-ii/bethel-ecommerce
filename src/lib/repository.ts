@@ -9,6 +9,7 @@ import {
   getFallbackProductById,
   getFallbackProductBySlug,
   getFallbackProducts,
+  catalogRead,
   isDatabaseUnavailableError,
 } from "@/lib/catalog-fallback";
 import { toOrder, toProduct, toUser, type OrderRow, type ProductRow, type UserRow } from "@/lib/db/rows";
@@ -62,9 +63,9 @@ const productColumns = sql`
 
 async function getCategoriesUncached(): Promise<Category[]> {
   try {
-    const rows = await sql<Array<{ slug: string; name: string; tagline: string }>>`
+    const rows = await catalogRead(sql<Array<{ slug: string; name: string; tagline: string }>>`
       SELECT slug, name, tagline FROM categories ORDER BY position, name
-    `;
+    `);
     return rows.map((r) => ({
       slug: r.slug as CategorySlug,
       name: r.name,
@@ -82,9 +83,9 @@ export const getCategories = unstable_cache(getCategoriesUncached, ["categories:
 
 async function getCategoryUncached(slug: string): Promise<Category | undefined> {
   try {
-    const [row] = await sql<Array<{ slug: string; name: string; tagline: string }>>`
+    const [row] = await catalogRead(sql<Array<{ slug: string; name: string; tagline: string }>>`
       SELECT slug, name, tagline FROM categories WHERE slug = ${slug}
-    `;
+    `);
     return row
       ? { slug: row.slug as CategorySlug, name: row.name, tagline: row.tagline }
       : undefined;
@@ -109,7 +110,7 @@ async function getProductsUncached(query: ProductQuery = {}): Promise<Product[]>
   const search = query.search?.trim();
 
   try {
-    const rows = await sql<ProductRow[]>`
+    const rows = await catalogRead(sql<ProductRow[]>`
       SELECT ${productColumns}
       FROM products p
       WHERE p.published = TRUE
@@ -128,7 +129,7 @@ async function getProductsUncached(query: ProductQuery = {}): Promise<Product[]>
             ? sql``
             : sql`p.created_at ASC`
         }
-    `;
+    `);
     return rows.map(toProduct);
   } catch (error) {
     if (!isDatabaseUnavailableError(error)) throw error;
@@ -167,13 +168,13 @@ export const getProducts = unstable_cache(getProductsUncached, ["products:list"]
  */
 async function getHeroProductUncached(): Promise<Product | undefined> {
   try {
-    const rows = await sql<ProductRow[]>`
+    const rows = await catalogRead(sql<ProductRow[]>`
       SELECT ${productColumns}
       FROM products p
       WHERE p.published = TRUE
       ORDER BY p.is_hero DESC, p.featured DESC, p.created_at ASC
       LIMIT 1
-    `;
+    `);
     return rows[0] ? toProduct(rows[0]) : undefined;
   } catch (error) {
     if (!isDatabaseUnavailableError(error)) throw error;
@@ -187,13 +188,13 @@ export const getHeroProduct = unstable_cache(getHeroProductUncached, ["products:
 
 async function getFeaturedProductsUncached(limit = 4): Promise<Product[]> {
   try {
-    const rows = await sql<ProductRow[]>`
+    const rows = await catalogRead(sql<ProductRow[]>`
       SELECT ${productColumns}
       FROM products p
       WHERE p.published = TRUE
       ORDER BY p.featured DESC, p.created_at ASC
       LIMIT ${limit}
-    `;
+    `);
     return rows.map(toProduct);
   } catch (error) {
     if (!isDatabaseUnavailableError(error)) throw error;
@@ -207,10 +208,10 @@ export const getFeaturedProducts = unstable_cache(getFeaturedProductsUncached, [
 
 async function getProductBySlugUncached(slug: string): Promise<Product | undefined> {
   try {
-    const [row] = await sql<ProductRow[]>`
+    const [row] = await catalogRead(sql<ProductRow[]>`
       SELECT ${productColumns} FROM products p
       WHERE p.slug = ${slug} AND p.published = TRUE
-    `;
+    `);
     return row ? toProduct(row) : undefined;
   } catch (error) {
     if (!isDatabaseUnavailableError(error)) throw error;
@@ -228,14 +229,14 @@ async function getRelatedProductsUncached(
   limit: number
 ): Promise<Product[]> {
   try {
-    const rows = await sql<ProductRow[]>`
+    const rows = await catalogRead(sql<ProductRow[]>`
       SELECT ${productColumns} FROM products p
       WHERE p.published = TRUE
         AND p.category = ${category}
         AND p.id <> ${excludeId}
       ORDER BY p.created_at ASC
       LIMIT ${limit}
-    `;
+    `);
     return rows.map(toProduct);
   } catch (error) {
     if (!isDatabaseUnavailableError(error)) throw error;
@@ -256,9 +257,9 @@ export function getRelatedProducts(product: Product, limit = 3): Promise<Product
 
 export async function getAllProducts(): Promise<Product[]> {
   try {
-    const rows = await sql<ProductRow[]>`
+    const rows = await catalogRead(sql<ProductRow[]>`
       SELECT ${productColumns} FROM products p ORDER BY p.created_at DESC
-    `;
+    `);
     return rows.map(toProduct);
   } catch (error) {
     if (!isDatabaseUnavailableError(error)) throw error;
@@ -268,9 +269,9 @@ export async function getAllProducts(): Promise<Product[]> {
 
 export async function getProductById(id: string): Promise<Product | undefined> {
   try {
-    const [row] = await sql<ProductRow[]>`
+    const [row] = await catalogRead(sql<ProductRow[]>`
       SELECT ${productColumns} FROM products p WHERE p.id = ${id}
-    `;
+    `);
     return row ? toProduct(row) : undefined;
   } catch (error) {
     if (!isDatabaseUnavailableError(error)) throw error;

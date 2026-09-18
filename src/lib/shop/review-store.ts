@@ -2,6 +2,7 @@ import "server-only";
 
 import { randomUUID } from "node:crypto";
 import { recordAudit } from "@/lib/admin/audit";
+import { catalogRead } from "@/lib/catalog-fallback";
 import { sql } from "@/lib/db/client";
 import { invoiceTokenIsValid } from "@/lib/shop/invoice";
 import { ReviewError, parseReviewInput, type ReviewStatus } from "@/lib/shop/reviews";
@@ -112,16 +113,17 @@ export async function getPublishedReviews(productId: string, limit = 20): Promis
   average: number | null;
   count: number;
 }> {
-  const [summary] = await sql<Array<{ average: number | null; count: number }>>`
+  // Lecture publique de la fiche produit : bornee comme le reste du catalogue.
+  const [summary] = await catalogRead(sql<Array<{ average: number | null; count: number }>>`
     SELECT round(avg(rating)::numeric, 1)::float8 AS average, count(*)::int AS count
     FROM reviews WHERE product_id = ${productId} AND status = 'publie'
-  `;
-  const rows = await sql<Array<{ id: string; author_name: string; rating: number; body: string; created_at: Date }>>`
+  `);
+  const rows = await catalogRead(sql<Array<{ id: string; author_name: string; rating: number; body: string; created_at: Date }>>`
     SELECT id, author_name, rating, body, created_at FROM reviews
     WHERE product_id = ${productId} AND status = 'publie'
     ORDER BY created_at DESC
     LIMIT ${limit}
-  `;
+  `);
   return {
     average: summary.average,
     count: summary.count,
