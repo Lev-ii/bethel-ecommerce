@@ -97,10 +97,11 @@ function buildMessage(order: Order, event: CustomerEvent): Message {
           };
     case "livree":
       return {
-        subject: pickup ? `Commande ${ref} retirée` : `Commande ${ref} livrée`,
+        subject: pickup ? `Commande ${ref} retirée · merci !` : `Commande ${ref} livrée · merci !`,
         status: pickup ? "retirée" : "livrée",
         paragraphs: [
-          pickup ? `Votre commande ${ref} a bien été retirée. Merci !` : `Votre commande ${ref} a bien été livrée. Merci !`,
+          pickup ? `Votre commande ${ref} a bien été retirée.` : `Votre commande ${ref} a bien été livrée.`,
+          "Merci pour votre confiance ! Nous espérons que ce matériel vous aidera à créer. Une question, un souci ? Répondez à ce message ou appelez-nous au +225 07 78 84 84 74.",
           // Paiement a la reception : c'est maintenant qu'il est encaisse, la
           // facture part donc a ce moment-la.
           ...(offline ? ["Votre facture est jointe à ce message."] : []),

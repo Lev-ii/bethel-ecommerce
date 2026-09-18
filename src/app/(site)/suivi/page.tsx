@@ -1,13 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Check } from "lucide-react";
 import { Eyebrow } from "@/components/ui/Primitives";
-import {
-  formatDate,
-  formatPrice,
-  orderStatusFlow,
-  orderStatusLabel,
-} from "@/lib/format";
+import { SuiviEnDirect } from "@/components/order/SuiviEnDirect";
+import { formatDate, formatPrice } from "@/lib/format";
 import { getOrderByReference } from "@/lib/repository";
 import { currentUser } from "@/lib/auth/current";
 import { canAccessOrderDocuments, invoicePath } from "@/lib/shop/invoice";
@@ -42,7 +37,7 @@ export default async function SuiviPage({
     <div className="shell py-10 lg:py-14">
       <header className="mb-8 max-w-xl">
         <Eyebrow>Suivi</Eyebrow>
-        <h1 className="mt-2 text-3xl sm:text-4xl">Où en est ma commande ?</h1>
+        <h1 className="mt-2 text-3xl sm:text-4xl">Où en est ma commande&nbsp;?</h1>
         <p className="mt-2 text-fg-2">
           Entrez la référence reçue à la validation, du type BTH-2607-1042.
         </p>
@@ -103,61 +98,13 @@ export default async function SuiviPage({
             </p>
           </div>
 
-          {order.status === "attente_paiement" ? (
-            <p className="mt-6 rounded-card border border-line bg-bg-2 p-4 text-sm text-fg-2">
-              <span className="font-semibold text-fg">Paiement en attente.</span> La commande sera
-              traitée dès que le paiement mobile money sera confirmé. Sans paiement sous{" "}
-              {PAYMENT_TIMEOUT_MINUTES} minutes, elle est annulée automatiquement.
-            </p>
-          ) : order.status === "annulee" ? (
-            <p className="mt-6 rounded-card border border-danger/30 bg-danger/5 p-4 text-sm text-fg-2">
-              <span className="font-semibold text-danger">Commande annulée.</span> Si vous avez été
-              débité, contactez-nous avec cette référence.
-            </p>
-          ) : null}
-
-          {/* Etapes du parcours. L'etat courant est nomme, pas seulement colore. */}
-          <ol className="mt-7 space-y-0">
-            {orderStatusFlow.map((status, index) => {
-              const currentIndex = orderStatusFlow.indexOf(order.status);
-              const done = currentIndex >= index;
-              const isCurrent = currentIndex === index;
-              return (
-                <li key={status} className="flex gap-4">
-                  <div className="flex flex-col items-center">
-                    <span
-                      aria-hidden
-                      className={`flex h-7 w-7 items-center justify-center rounded-full border text-[11px] ${
-                        done
-                          ? "border-ok bg-ok text-bg"
-                          : "border-line text-fg-3"
-                      }`}
-                    >
-                      {done ? <Check size={14} /> : index + 1}
-                    </span>
-                    {index < orderStatusFlow.length - 1 ? (
-                      <span
-                        aria-hidden
-                        className={`w-px flex-1 ${done ? "bg-ok" : "bg-line"}`}
-                      />
-                    ) : null}
-                  </div>
-                  <div className="pb-6">
-                    <p
-                      className={`font-semibold ${done ? "" : "text-fg-3"}`}
-                    >
-                      {orderStatusLabel[status]}
-                      {isCurrent ? (
-                        <span className="ml-2 rounded-card bg-brand/25 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wide text-brand-deep">
-                          En cours
-                        </span>
-                      ) : null}
-                    </p>
-                  </div>
-                </li>
-              );
-            })}
-          </ol>
+          <SuiviEnDirect
+            key={order.reference}
+            reference={order.reference}
+            initialStatus={order.status}
+            deliveryMode={order.deliveryMode}
+            paymentTimeoutMinutes={PAYMENT_TIMEOUT_MINUTES}
+          />
 
           <div className="border-t border-line pt-5">
             <h2 className="text-base">Contenu</h2>
