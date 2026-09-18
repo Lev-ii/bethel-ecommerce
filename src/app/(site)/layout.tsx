@@ -4,6 +4,8 @@ import { Footer } from "@/components/layout/Footer";
 import { MiniCartDrawer } from "@/components/cart/MiniCartDrawer";
 import { AnnouncementBar } from "@/components/layout/AnnouncementBar";
 import { getCategories } from "@/lib/repository";
+import { ConsentBanner } from "@/components/analytics/ConsentBanner";
+import { Pixels } from "@/components/analytics/Pixels";
 
 export default async function SiteLayout({
   children,
@@ -27,6 +29,8 @@ export default async function SiteLayout({
         {children}
       </main>
       <Footer isAdmin={user?.role === "ADMIN"} categories={categories} />
+      <Pixels />
+      <ConsentBanner />
     </div>
   );
 }
