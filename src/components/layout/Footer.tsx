@@ -90,7 +90,7 @@ export function Footer({ isAdmin = false, categories }: { isAdmin?: boolean; cat
 
       <div className="border-t border-line">
         <div className="shell flex flex-col gap-2 py-5 text-xs text-[#6c695e] sm:flex-row sm:items-center sm:justify-between">
-          <p>&copy; {new Date().getFullYear()} Bethel. Tous droits reserves.</p>
+          <p>&copy; {new Date().getFullYear()} Bethel. Tous droits réservés.</p>
           <p className="tabular">
             Studio conçu avec amour à Abidjan, Côte d'Ivoire.
           </p>

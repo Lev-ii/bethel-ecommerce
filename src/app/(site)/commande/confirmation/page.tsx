@@ -111,7 +111,7 @@ async function Recap({ searchParams }: { searchParams: SearchParams }) {
             href={documentsAccess ? trackingPath(reference) : `/suivi?ref=${encodeURIComponent(reference)}`}
             className="btn-primary"
           >
-            Suivre ma commande
+            Suivre ma commande en direct
           </Link>
           {documentsAccess ? (
           <a href={invoicePath(reference)} className="btn-outline">

@@ -1,56 +1,12 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { playFanfare } from "@/components/ui/sounds";
 import { celebrationKey } from "@/lib/shop/celebration";
 
 /** Jaune de marque et extremites de la barre Kelvin, plus l'encre sombre. */
 const COLORS = ["#FFED43", "#B4741A", "#2A78D6", "#16150F", "#F2C21A"];
 const DURATION_MS = 2600;
-
-/**
- * Son synthetise : un "pop" puis un petit arpege montant. Aucun fichier.
- * Les navigateurs bloquent le son sans interaction recente avec la page :
- * apres un retour de paiement en ligne (nouvelle page), il peut rester muet.
- * Ce n'est pas une erreur, on n'insiste pas.
- */
-async function playFanfare() {
-  const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-  if (!Ctx) return;
-  const ctx = new Ctx();
-  try {
-    if (ctx.state === "suspended") await ctx.resume();
-    if (ctx.state !== "running") return;
-    const now = ctx.currentTime;
-
-    const pop = ctx.createOscillator();
-    const popGain = ctx.createGain();
-    pop.type = "triangle";
-    pop.frequency.setValueAtTime(420, now);
-    pop.frequency.exponentialRampToValueAtTime(90, now + 0.12);
-    popGain.gain.setValueAtTime(0.25, now);
-    popGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.14);
-    pop.connect(popGain).connect(ctx.destination);
-    pop.start(now);
-    pop.stop(now + 0.15);
-
-    [523.25, 659.25, 783.99, 1046.5].forEach((frequency, i) => {
-      const start = now + 0.12 + i * 0.09;
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = "sine";
-      osc.frequency.value = frequency;
-      gain.gain.setValueAtTime(0.0001, start);
-      gain.gain.exponentialRampToValueAtTime(0.16, start + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.35);
-      osc.connect(gain).connect(ctx.destination);
-      osc.start(start);
-      osc.stop(start + 0.36);
-    });
-    setTimeout(() => void ctx.close(), 1200);
-  } catch {
-    void ctx.close();
-  }
-}
 
 interface Piece {
   x: number;
@@ -63,11 +19,16 @@ interface Piece {
   color: string;
 }
 
-export function Celebration({ reference }: { reference: string }) {
+/**
+ * Confettis et fanfare, une seule fois par cle de session : recharger la page
+ * ne relance pas la fete. Par defaut, la cle de la commande validee ; le suivi
+ * en direct en passe une autre pour feter la livraison.
+ */
+export function Celebration({ reference, storageKey }: { reference: string; storageKey?: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    const key = celebrationKey(reference);
+    const key = storageKey ?? celebrationKey(reference);
     try {
       if (sessionStorage.getItem(key)) return;
       sessionStorage.setItem(key, "1");
@@ -135,7 +96,7 @@ export function Celebration({ reference }: { reference: string }) {
       cancelAnimationFrame(frame);
       window.removeEventListener("resize", resize);
     };
-  }, [reference]);
+  }, [reference, storageKey]);
 
   return <canvas ref={canvasRef} aria-hidden className="pointer-events-none fixed inset-0 z-50 h-dvh w-screen" />;
 }
