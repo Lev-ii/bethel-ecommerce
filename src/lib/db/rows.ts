@@ -28,6 +28,8 @@ export interface ProductRow {
   is_hero: boolean;
   published: boolean;
   specs?: Array<{ label: string; value: string }> | null;
+  review_average?: number | null;
+  review_count?: number | null;
 }
 
 export function toProduct(row: ProductRow): Product {
@@ -50,6 +52,10 @@ export function toProduct(row: ProductRow): Product {
     published: row.published,
     // json_agg renvoie [null] quand la jointure ne trouve rien.
     specs: (row.specs ?? []).filter(Boolean) as Spec[],
+    rating:
+      row.review_count && row.review_average !== null && row.review_average !== undefined
+        ? { average: Number(row.review_average), count: Number(row.review_count) }
+        : undefined,
   };
 }
 

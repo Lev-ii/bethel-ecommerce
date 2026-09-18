@@ -19,6 +19,8 @@ export const AUDIT_ACTIONS = {
   "category.updated": "Catégorie modifiée",
   "category.reordered": "Catégorie déplacée dans le menu",
   "category.deleted": "Catégorie supprimée",
+  "review.published": "Avis publié",
+  "review.rejected": "Avis refusé",
   "order.status_changed": "Statut de commande changé",
   "auth.admin_login": "Connexion administrateur",
   "auth.admin_login_failed": "Connexion administrateur refusée",
@@ -31,6 +33,7 @@ export type AuditAction = keyof typeof AUDIT_ACTIONS;
 export const AUDIT_CATEGORIES = {
   produits: { label: "Produits", actions: ["product.created", "product.updated", "product.deleted", "product.stock_adjusted", "product.published", "product.unpublished", "product.image_deleted", "product.category_moved"] },
   categories: { label: "Catégories", actions: ["category.created", "category.updated", "category.reordered", "category.deleted"] },
+  avis: { label: "Avis", actions: ["review.published", "review.rejected"] },
   commandes: { label: "Commandes", actions: ["order.status_changed"] },
   connexions: { label: "Connexions", actions: ["auth.admin_login", "auth.admin_login_failed", "auth.password_reset"] },
   systeme: { label: "Système", actions: ["demo.reset"] },

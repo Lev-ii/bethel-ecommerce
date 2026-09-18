@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Eyebrow } from "@/components/ui/Primitives";
+import { ReviewSection } from "@/components/order/ReviewSection";
 import { SuiviEnDirect } from "@/components/order/SuiviEnDirect";
+import { getOrderForReview, isBuyer } from "@/lib/shop/review-store";
 import { formatDate, formatPrice } from "@/lib/format";
 import { getOrderByReference } from "@/lib/repository";
 import { currentUser } from "@/lib/auth/current";
@@ -13,7 +15,7 @@ export const metadata: Metadata = {
   description: "Retrouvez l'état de votre commande avec sa référence.",
 };
 
-type SearchParams = Promise<{ ref?: string; t?: string }>;
+type SearchParams = Promise<{ ref?: string; t?: string; avis?: string; "avis-erreur"?: string; produit?: string }>;
 
 export default async function SuiviPage({
   searchParams,
@@ -24,14 +26,20 @@ export default async function SuiviPage({
   const reference = sp.ref?.trim() ?? "";
   if (reference) await releaseExpiredReservationsQuietly({ reference });
   const order = reference ? await getOrderByReference(reference) : undefined;
+  const user = order ? await currentUser() : null;
   const documentsAccess = order
     ? canAccessOrderDocuments({
         reference: order.reference,
         token: sp.t,
-        user: await currentUser(),
+        user,
         orderUserId: order.userId,
       })
     : false;
+  // Notation : commande livree, et seulement pour l'acheteur (pas l'administration).
+  const reviewOrder =
+    order?.status === "livree" && isBuyer({ reference: order.reference, userId: order.userId ?? null }, sp.t, user)
+      ? await getOrderForReview(order.reference)
+      : undefined;
 
   return (
     <div className="shell py-10 lg:py-14">
@@ -145,6 +153,16 @@ export default async function SuiviPage({
               )
             ) : null}
           </div>
+
+          {reviewOrder && reviewOrder.items.length > 0 ? (
+            <ReviewSection
+              order={reviewOrder}
+              token={sp.t}
+              thanked={sp.avis === "merci"}
+              errorCode={sp["avis-erreur"]}
+              errorProductId={sp.produit}
+            />
+          ) : null}
         </div>
       ) : null}
     </div>

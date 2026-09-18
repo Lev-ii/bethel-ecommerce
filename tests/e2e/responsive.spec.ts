@@ -19,7 +19,7 @@ const LONG_NAME =
 
 const WIDTHS = [375, 768, 1024, 1280, 1440, 1920, 2560];
 const SHOP_PAGES = ["/", "/boutique", `/boutique/${LONG_ID}`, "/panier", "/suivi"];
-const ADMIN_PAGES = ["/admin", "/admin/produits", "/admin/categories", "/admin/commandes", "/admin/journal"];
+const ADMIN_PAGES = ["/admin", "/admin/produits", "/admin/categories", "/admin/avis", "/admin/commandes", "/admin/journal"];
 
 test.beforeAll(async () => {
   const [category] = await sql<Array<{ slug: string }>>`SELECT slug FROM categories ORDER BY position LIMIT 1`;
