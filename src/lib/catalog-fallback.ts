@@ -1,5 +1,5 @@
 import { categories as defaultCategories, products as defaultProducts } from "@/lib/data/catalog";
-import type { Category, Product } from "@/lib/types";
+import type { Category, CategorySlug, Product } from "@/lib/types";
 
 export function getFallbackCategories(): Category[] {
   return defaultCategories;
@@ -7,6 +7,22 @@ export function getFallbackCategories(): Category[] {
 
 export function getFallbackProducts(): Product[] {
   return defaultProducts.filter((product) => product.published);
+}
+
+/** Meme filtre et meme tri que la liste lue en base (repository.getProducts). */
+export function getFallbackProductsFor(
+  query: { category?: CategorySlug; search?: string; sort?: string; inStockOnly?: boolean } = {}
+): Product[] {
+  const search = query.search?.trim().toLowerCase();
+  const filtered = getFallbackProducts().filter(
+    (product) =>
+      (!query.category || product.category === query.category) &&
+      (!query.inStockOnly || product.stock > 0) &&
+      (!search || `${product.name} ${product.brand} ${product.headline}`.toLowerCase().includes(search))
+  );
+  if (query.sort === "prix-croissant") return filtered.sort((a, b) => a.price - b.price);
+  if (query.sort === "prix-decroissant") return filtered.sort((a, b) => b.price - a.price);
+  return filtered;
 }
 
 export function getFallbackFeaturedProducts(limit = 4): Product[] {
@@ -103,6 +119,17 @@ export async function catalogRead<T>(query: PromiseLike<T>, timeoutMs = CATALOG_
   } finally {
     clearTimeout(timer);
   }
+}
+
+/**
+ * Une entree du cache du catalogue est-elle encore bonne a servir ? `at` est
+ * l'instant de sa lecture en base. Au-dela de maxAgeMs, on relit la base
+ * plutot que de montrer un etat perime (voir catalogCache, repository.ts).
+ */
+export function isFreshCatalogEntry(at: unknown, maxAgeMs: number, now = Date.now()): boolean {
+  // Une date legerement dans le futur vient d'une autre instance dont
+  // l'horloge avance un peu : l'entree reste fraiche.
+  return typeof at === "number" && now - at <= maxAgeMs;
 }
 
 export function isDatabaseUnavailableError(error: unknown): boolean {
