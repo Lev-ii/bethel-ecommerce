@@ -21,6 +21,7 @@
     "db:migrate:status": "node --env-file-if-exists=.env scripts/migrate.mjs --status",
     "test:concurrence": "node --env-file-if-exists=.env tests/concurrence.mjs",
     "admin:role": "node --env-file-if-exists=.env scripts/set-role.mjs",
+    "admin:create": "node --env-file-if-exists=.env scripts/admin-create.mjs",
     "admin:password": "node --env-file-if-exists=.env scripts/admin-password.mjs"
   },
   "dependencies": {

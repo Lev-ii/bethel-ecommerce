@@ -14,12 +14,20 @@ import { hashPassword } from "@/lib/auth/password";
  * deploiement sans se demander dans quel etat se trouve la base.
  */
 
-/** Compte administrateur cree au premier demarrage. */
-export const SEED_ADMIN = {
-  email: "admin@bethel.store",
-  name: "Administrateur",
-  password: "bethel2026",
-};
+/**
+ * Compte administrateur du premier demarrage, lu dans l'environnement.
+ *
+ * Aucun identifiant par defaut : le depot est public, un mot de passe ecrit
+ * ici serait un acces administrateur offert a tous. Sans ADMIN_EMAIL et
+ * ADMIN_PASSWORD, aucun compte n'est cree - "npm run admin:create" en fait un
+ * avec un mot de passe tire au hasard, affiche une seule fois.
+ */
+function adminFromEnv(): { email: string; name: string; password: string } | null {
+  const email = process.env.ADMIN_EMAIL?.trim();
+  const password = process.env.ADMIN_PASSWORD;
+  if (!email || !password) return null;
+  return { email, name: process.env.ADMIN_NAME?.trim() || "Administrateur", password };
+}
 
 async function seedCategories(): Promise<void> {
   for (const [index, c] of categories.entries()) {
@@ -98,11 +106,8 @@ export async function seedDemoData({ force = false } = {}): Promise<void> {
 }
 
 /**
- * Cree le compte administrateur s'il n'en existe aucun.
- *
- * Sans lui, personne ne pourrait ouvrir l'administration d'une installation
- * neuve. Les identifiants sont rappeles dans le README et sur la page de
- * connexion : ils sont a changer avant toute mise en ligne.
+ * Cree le compte administrateur s'il n'en existe aucun et si l'environnement
+ * fournit ses identifiants. Sinon, ne fait rien : voir "npm run admin:create".
  */
 export async function ensureAdminAccount(): Promise<void> {
   const [{ count }] = await sql<Array<{ count: string }>>`
@@ -110,11 +115,19 @@ export async function ensureAdminAccount(): Promise<void> {
   `;
   if (Number(count) > 0) return;
 
-  const passwordHash = await hashPassword(SEED_ADMIN.password);
+  const admin = adminFromEnv();
+  if (!admin) {
+    console.warn(
+      "[seed] aucun administrateur en base, et ADMIN_EMAIL / ADMIN_PASSWORD ne sont pas definis. " +
+        "Creez le compte avec : npm run admin:create -- <email>"
+    );
+    return;
+  }
+
+  const passwordHash = await hashPassword(admin.password);
   await sql`
     INSERT INTO users (id, email, name, password_hash, role)
-    VALUES (${randomUUID()}, ${SEED_ADMIN.email}, ${SEED_ADMIN.name},
-            ${passwordHash}, 'ADMIN')
+    VALUES (${randomUUID()}, ${admin.email}, ${admin.name}, ${passwordHash}, 'ADMIN')
     ON CONFLICT (email) DO NOTHING
   `;
 }

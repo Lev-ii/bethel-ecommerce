@@ -5,7 +5,7 @@ import type { SessionUser } from "@/lib/types";
 
 const admin: SessionUser = {
   id: "u-1",
-  email: "admin@bethel.ci",
+  email: "compte@exemple.test",
   name: "Admin",
   role: "ADMIN",
 };
@@ -16,7 +16,7 @@ afterEach(() => {
 
 describe("passwordProblem", () => {
   it("accepte un mot de passe conforme", () => {
-    expect(passwordProblem("bethel2026")).toBeNull();
+    expect(passwordProblem("MotDePasse2026")).toBeNull();
   });
 
   it("refuse en dessous de huit caracteres", () => {
@@ -34,30 +34,30 @@ describe("passwordProblem", () => {
 
 describe("hachage des mots de passe", () => {
   it("verifie le bon mot de passe", async () => {
-    const stored = await hashPassword("bethel2026");
-    await expect(verifyPassword("bethel2026", stored)).resolves.toBe(true);
+    const stored = await hashPassword("MotDePasse2026");
+    await expect(verifyPassword("MotDePasse2026", stored)).resolves.toBe(true);
   });
 
   it("refuse un mot de passe errone", async () => {
-    const stored = await hashPassword("bethel2026");
+    const stored = await hashPassword("MotDePasse2026");
     await expect(verifyPassword("bethel2027", stored)).resolves.toBe(false);
   });
 
   it("tire un sel different a chaque appel", async () => {
-    const [a, b] = await Promise.all([hashPassword("bethel2026"), hashPassword("bethel2026")]);
+    const [a, b] = await Promise.all([hashPassword("MotDePasse2026"), hashPassword("MotDePasse2026")]);
     expect(a).not.toBe(b);
     expect(a.split(":")[0]).not.toBe(b.split(":")[0]);
   });
 
   it("ne renvoie jamais le mot de passe en clair", async () => {
-    const stored = await hashPassword("bethel2026");
-    expect(stored).not.toContain("bethel2026");
+    const stored = await hashPassword("MotDePasse2026");
+    expect(stored).not.toContain("MotDePasse2026");
   });
 
   it.each(["", "sel-sans-hachage", "a:b:c:d"])(
     "refuse un enregistrement malforme (%s)",
     async (stored) => {
-      await expect(verifyPassword("bethel2026", stored)).resolves.toBe(false);
+      await expect(verifyPassword("MotDePasse2026", stored)).resolves.toBe(false);
     }
   );
 });

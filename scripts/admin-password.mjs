@@ -1,7 +1,7 @@
 /**
  * Change le mot de passe d'un compte existant.
  *
- *   npm run admin:password -- admin@bethel.store "NouveauMotDePasse2026"
+ *   npm run admin:password -- <email> "<nouveau-mot-de-passe>"
  */
 import { randomBytes, scrypt } from "node:crypto";
 import postgres from "postgres";

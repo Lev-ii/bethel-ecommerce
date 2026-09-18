@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import postgres from "postgres";
-import { E2E_DATABASE_URL } from "./constantes";
+import { E2E_ADMIN, E2E_DATABASE_URL } from "./constantes";
 
 /**
  * Mise en page de 375 px (telephone) a 2560 px (grand ecran), boutique et
@@ -13,7 +13,6 @@ import { E2E_DATABASE_URL } from "./constantes";
  */
 
 const sql = postgres(E2E_DATABASE_URL, { max: 2, onnotice: () => {} });
-const ADMIN = { email: "admin@bethel.store", password: "bethel2026" };
 const LONG_ID = "e2e-nom-tres-long";
 const LONG_NAME =
   "Kit de tournage complet pour smartphone avec stabilisateur trois axes, micro-cravate sans fil double et panneau LED bicolore";
@@ -69,8 +68,8 @@ test("boutique : aucune page ne déborde, de 375 à 2560 px", async ({ page }) =
 
 test("administration : aucune page ne déborde, de 375 à 2560 px", async ({ page }) => {
   await page.goto("/connexion?suite=/admin");
-  await page.getByLabel("Email").fill(ADMIN.email);
-  await page.getByLabel("Mot de passe", { exact: true }).fill(ADMIN.password);
+  await page.getByLabel("Email").fill(E2E_ADMIN.email);
+  await page.getByLabel("Mot de passe", { exact: true }).fill(E2E_ADMIN.password);
   await page.getByRole("button", { name: "Se connecter" }).click();
   await expect(page).toHaveURL(/:3100\/admin$/);
 
@@ -79,8 +78,8 @@ test("administration : aucune page ne déborde, de 375 à 2560 px", async ({ pag
 
 test("produits de l'administration : un nom très long est rogné sans écraser les autres colonnes", async ({ page }) => {
   await page.goto("/connexion?suite=/admin/produits");
-  await page.getByLabel("Email").fill(ADMIN.email);
-  await page.getByLabel("Mot de passe", { exact: true }).fill(ADMIN.password);
+  await page.getByLabel("Email").fill(E2E_ADMIN.email);
+  await page.getByLabel("Mot de passe", { exact: true }).fill(E2E_ADMIN.password);
   await page.getByRole("button", { name: "Se connecter" }).click();
   await expect(page).toHaveURL(/:3100\/admin\/produits$/);
 
