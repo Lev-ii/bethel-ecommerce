@@ -19,6 +19,8 @@
     "db:setup": "node --env-file-if-exists=.env scripts/setup-db.mjs",
     "db:migrate": "node --env-file-if-exists=.env scripts/migrate.mjs",
     "db:migrate:status": "node --env-file-if-exists=.env scripts/migrate.mjs --status",
+    "db:migrate:prod:status": "node --env-file=.env.prod-db.local scripts/migrate.mjs --status",
+    "db:migrate:prod": "node --env-file=.env.prod-db.local scripts/migrate.mjs",
     "test:concurrence": "node --env-file-if-exists=.env tests/concurrence.mjs",
     "admin:role": "node --env-file-if-exists=.env scripts/set-role.mjs",
     "admin:create": "node --env-file-if-exists=.env scripts/admin-create.mjs",
