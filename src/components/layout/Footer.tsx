@@ -3,6 +3,7 @@ import type { Category } from "@/lib/types";
 import { KelvinBar } from "@/components/ui/Primitives";
 import { Logo } from "@/components/layout/Logo";
 import { NewsletterForm } from "@/components/layout/NewsletterForm";
+import { CookieSettingsButton } from "@/components/analytics/ConsentBanner";
 
 export function Footer({ isAdmin = false, categories }: { isAdmin?: boolean; categories: Category[] }) {
   return (
@@ -34,6 +35,7 @@ export function Footer({ isAdmin = false, categories }: { isAdmin?: boolean; cat
             <li><Link href="/cgv" className="text-[#46443c] hover:text-[#16150f]">CGV</Link></li>
             <li><Link href="/mentions-legales" className="text-[#46443c] hover:text-[#16150f]">Mentions légales</Link></li>
             <li><Link href="/confidentialite" className="text-[#46443c] hover:text-[#16150f]">Confidentialité</Link></li>
+            <li><CookieSettingsButton className="text-[#46443c] hover:text-[#16150f]" /></li>
           </ul>
         </div>
 

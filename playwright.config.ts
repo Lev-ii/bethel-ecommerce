@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import { defineConfig, devices } from "@playwright/test";
-import { APP_PORT, E2E_ADMIN, E2E_AUTH_SECRET, E2E_CRON_SECRET, E2E_DATABASE_URL, JEKO_PORT } from "./tests/e2e/constantes";
+import { APP_PORT, CONSENT_KEY, E2E_ADMIN, E2E_AUTH_SECRET, E2E_CRON_SECRET, E2E_DATABASE_URL, E2E_PIXELS, JEKO_PORT } from "./tests/e2e/constantes";
 
 /**
  * Tests de parcours : le site construit et lance comme en production, face a
@@ -36,6 +36,8 @@ const serverEnv: Record<string, string> = {
   NEXT_DIST_DIR: ".next-e2e",
   ADMIN_EMAIL: E2E_ADMIN.email,
   ADMIN_PASSWORD: E2E_ADMIN.password,
+  NEXT_PUBLIC_FACEBOOK_PIXEL_ID: E2E_PIXELS.facebook,
+  NEXT_PUBLIC_TIKTOK_PIXEL_ID: E2E_PIXELS.tiktok,
   NEXT_TELEMETRY_DISABLED: "1",
 };
 
@@ -51,6 +53,12 @@ export default defineConfig({
     baseURL: `http://127.0.0.1:${APP_PORT}`,
     trace: "retain-on-failure",
     locale: "fr-FR",
+    // Choix « Refuser » deja fait : le bandeau des pixels ne couvre pas les
+    // boutons des parcours. tests/e2e/pixels.spec.ts repart d'un navigateur vierge.
+    storageState: {
+      cookies: [],
+      origins: [{ origin: `http://127.0.0.1:${APP_PORT}`, localStorage: [{ name: CONSENT_KEY, value: "refuse" }] }],
+    },
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: [

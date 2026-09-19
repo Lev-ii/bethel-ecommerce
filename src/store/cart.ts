@@ -3,6 +3,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { Product } from "@/lib/types";
+import { trackShopEvent } from "@/lib/tracking/pixels";
 
 export interface CartItem {
   productId: string;
@@ -38,7 +39,9 @@ export const useCart = create<CartState>()(
       drawerOpen: false,
       ready: false,
 
-      add: (product, quantity = 1) =>
+      add: (product, quantity = 1) => {
+        // Pixels publicitaires (seulement avec l'accord du visiteur).
+        trackShopEvent({ name: "AddToCart", lines: [{ id: product.id, quantity, price: product.price }] });
         set((state) => {
           const existing = state.items.find((i) => i.productId === product.id);
           if (existing) {
@@ -74,7 +77,8 @@ export const useCart = create<CartState>()(
             lastAdded: item,
             drawerOpen: true,
           };
-        }),
+        });
+      },
 
       setQuantity: (productId, quantity) =>
         set((state) => ({

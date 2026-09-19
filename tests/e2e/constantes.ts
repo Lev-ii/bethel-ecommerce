@@ -12,3 +12,7 @@ export const E2E_AUTH_SECRET = "secret-de-session-des-tests-de-parcours";
  * contient aucun identifiant de production.
  */
 export const E2E_ADMIN = { email: "admin@parcours.test", password: "parcours-2026" };
+
+/** Faux identifiants de pixels (format valide) : aucun appel ne sort, les requetes externes sont coupees. */
+export const E2E_PIXELS = { facebook: "123456789012345", tiktok: "C1ABCDEF2345GHIJ6789" };
+export const CONSENT_KEY = "bethel-consentement-pub";

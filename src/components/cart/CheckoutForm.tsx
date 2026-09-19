@@ -1,7 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { trackShopEvent } from "@/lib/tracking/pixels";
 import Image from "next/image";
 import Link from "next/link";
 import { Banknote, Loader2, Smartphone, Store } from "lucide-react";
@@ -67,6 +68,17 @@ export function CheckoutForm({
   const [submitting, setSubmitting] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   const [draftLoaded, setDraftLoaded] = useState(false);
+  const checkoutTracked = useRef(false);
+
+  // Pixels : debut de commande, une fois par affichage, panier connu.
+  useEffect(() => {
+    if (!ready || items.length === 0 || checkoutTracked.current) return;
+    checkoutTracked.current = true;
+    trackShopEvent({
+      name: "InitiateCheckout",
+      lines: items.map((i) => ({ id: i.productId, quantity: i.quantity, price: i.unitPrice })),
+    });
+  }, [ready, items]);
 
   // Relecture du brouillon. Apres le montage seulement : le serveur ne connait
   // pas le stockage du navigateur, le lire au rendu ferait diverger les deux.

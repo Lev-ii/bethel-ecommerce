@@ -10,6 +10,8 @@ import { currentUser } from "@/lib/auth/current";
 import { canAccessOrderDocuments, invoicePath, trackingPath } from "@/lib/shop/invoice";
 import { shouldCelebrate } from "@/lib/shop/celebration";
 import { syncOrderPayment } from "@/lib/shop/payment";
+import { getOrderByReference } from "@/lib/repository";
+import { TrackEvent } from "@/components/analytics/TrackEvent";
 
 export const metadata: Metadata = { title: "Commande confirmée" };
 
@@ -41,8 +43,22 @@ async function Recap({ searchParams }: { searchParams: SearchParams }) {
     failed: Boolean(paiementEchoue),
   });
 
+  // Pixels : montant et articles relus en base, pas dans l'adresse (modifiable).
+  const purchased = celebrate && sp.ref ? await getOrderByReference(sp.ref).catch(() => undefined) : undefined;
+
   return (
     <div className="card mx-auto max-w-xl overflow-hidden">
+      {purchased ? (
+        <TrackEvent
+          onceKey={`bethel-pixel-achat-${purchased.reference.toLowerCase()}`}
+          event={{
+            name: "Purchase",
+            orderId: purchased.reference,
+            value: purchased.total,
+            lines: purchased.lines.map((l) => ({ id: l.productId, quantity: l.quantity, price: l.unitPrice })),
+          }}
+        />
+      ) : null}
       {sp.ref && !paiementEchoue ? <ClearCartOnMount /> : null}
       {celebrate && sp.ref ? <Celebration reference={sp.ref} /> : null}
       <KelvinBar />

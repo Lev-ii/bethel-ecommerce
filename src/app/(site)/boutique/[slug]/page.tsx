@@ -16,6 +16,7 @@ import {
 } from "@/lib/repository";
 import { formatDate } from "@/lib/format";
 import { getPublishedReviews } from "@/lib/shop/review-store";
+import { TrackEvent } from "@/components/analytics/TrackEvent";
 
 type Params = Promise<{ slug: string }>;
 
@@ -54,6 +55,7 @@ export default async function ProduitPage({ params }: { params: Params }) {
   return (
     <div className="shell py-8 lg:py-12">
       <ProductViewBeacon productId={product.id} />
+      <TrackEvent event={{ name: "ViewContent", lines: [{ id: product.id, quantity: 1, price: product.price }] }} />
       <nav aria-label="Fil d'Ariane" className="mb-8">
         <ol className="flex flex-wrap items-center gap-1 text-sm text-fg-3">
           <li>
