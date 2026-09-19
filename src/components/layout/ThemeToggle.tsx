@@ -7,34 +7,63 @@ export type Theme = "light" | "dark";
 
 const STORAGE_KEY = "bethel-theme";
 
+function readStored(): Theme | null {
+  try {
+    const value = window.localStorage.getItem(STORAGE_KEY);
+    return value === "dark" || value === "light" ? value : null;
+  } catch {
+    return null;
+  }
+}
+
 function apply(theme: Theme) {
   document.documentElement.classList.toggle("dark", theme === "dark");
   document.documentElement.style.colorScheme = theme;
 }
 
+function systemTheme(): Theme {
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
 /**
  * Bascule jour / nuit.
  *
+ * Par defaut, le theme est celui du systeme de l'appareil, et le suit s'il
+ * change (bascule automatique du soir, par exemple). Un clic enregistre un
+ * choix explicite ; revenir sur le theme du systeme efface ce choix, sinon un
+ * clic ancien figeait le theme pour toujours.
+ *
  * Le theme est applique avant le premier rendu par le script inline de
- * layout.tsx, pour eviter le flash. Ce composant ne fait que le lire et le
- * changer.
+ * layout.tsx, pour eviter le flash.
  */
 export function ThemeToggle({ className = "" }: { className?: string }) {
   const [theme, setTheme] = useState<Theme | null>(null);
 
   useEffect(() => {
-    const stored = window.localStorage.getItem(STORAGE_KEY) as Theme | null;
-    const system = window.matchMedia("(prefers-color-scheme: dark)").matches
-      ? "dark"
-      : "light";
-    setTheme(stored ?? system);
+    const stored = readStored();
+    setTheme(stored ?? systemTheme());
+
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+    const onSystemChange = () => {
+      if (readStored()) return;
+      const next = systemTheme();
+      setTheme(next);
+      apply(next);
+    };
+    media.addEventListener("change", onSystemChange);
+    return () => media.removeEventListener("change", onSystemChange);
   }, []);
 
   const toggle = () => {
     const next: Theme = theme === "dark" ? "light" : "dark";
     setTheme(next);
     apply(next);
-    window.localStorage.setItem(STORAGE_KEY, next);
+    try {
+      if (next === systemTheme()) window.localStorage.removeItem(STORAGE_KEY);
+      else window.localStorage.setItem(STORAGE_KEY, next);
+    } catch {
+      // Stockage indisponible (navigation privee) : le choix vaut pour la page.
+    }
   };
 
   return (
