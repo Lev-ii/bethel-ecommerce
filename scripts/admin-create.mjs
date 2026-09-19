@@ -48,7 +48,13 @@ const [existing] = await sql`SELECT id FROM users WHERE lower(email) = lower(${e
 const passwordHash = await hash(password);
 
 if (existing) {
-  await sql`UPDATE users SET password_hash = ${passwordHash}, role = 'ADMIN' WHERE id = ${existing.id}`;
+  // session_version + 1 : les sessions ouvertes avec l'ancien mot de passe
+  // cessent de valoir.
+  await sql`
+    UPDATE users
+    SET password_hash = ${passwordHash}, role = 'ADMIN', session_version = session_version + 1
+    WHERE id = ${existing.id}
+  `;
   console.log(`\nCompte existant : mot de passe remplace et role ADMIN confirme (${email}).`);
 } else {
   await sql`

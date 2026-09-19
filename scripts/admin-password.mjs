@@ -47,7 +47,9 @@ const sql = postgres(url, {
 try {
   const rows = await sql`
     UPDATE users
-    SET password_hash = ${passwordHash}
+    SET password_hash = ${passwordHash},
+        -- Revoque les sessions ouvertes avec l'ancien mot de passe.
+        session_version = session_version + 1
     WHERE lower(email) = ${email.trim().toLowerCase()}
     RETURNING email, name
   `;

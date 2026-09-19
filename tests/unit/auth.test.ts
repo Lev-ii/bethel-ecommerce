@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { hashPassword, passwordProblem, verifyPassword } from "@/lib/auth/password";
-import { authSecret, createToken, readToken } from "@/lib/auth/session";
+import { authSecret, createToken, readClaims, readToken } from "@/lib/auth/session";
 import type { SessionUser } from "@/lib/types";
 
 const admin: SessionUser = {
@@ -78,9 +78,9 @@ describe("jeton de session", () => {
   });
 
   it("rejette un jeton signe avec un autre secret", async () => {
-    vi.stubEnv("AUTH_SECRET", "premier-secret-de-test-long");
+    vi.stubEnv("AUTH_SECRET", "premier-secret-de-test-assez-long-pour-32");
     const token = await createToken(admin);
-    vi.stubEnv("AUTH_SECRET", "second-secret-de-test-long!");
+    vi.stubEnv("AUTH_SECRET", "second-secret-de-test-assez-long-pour-32!");
     expect(await readToken(token)).toBeNull();
   });
 
@@ -92,6 +92,27 @@ describe("jeton de session", () => {
     const user = await readToken(token);
     vi.useRealTimers();
     expect(user).toBeNull();
+  });
+
+  it("porte la version de session du compte", async () => {
+    vi.stubEnv("AUTH_SECRET", "secret-de-test-suffisamment-long");
+    const claims = await readClaims(await createToken(admin, 3));
+    expect(claims).toEqual({ user: admin, sessionVersion: 3 });
+  });
+
+  it("lit un jeton emis avant les versions de session comme version 0", async () => {
+    vi.stubEnv("AUTH_SECRET", "secret-de-test-suffisamment-long");
+    // Jeton signe a l'ancienne : charge sans champ "sv".
+    const body = Buffer.from(JSON.stringify({ ...admin, exp: Math.floor(Date.now() / 1000) + 60 })).toString("base64url");
+    const key = await crypto.subtle.importKey(
+      "raw",
+      new TextEncoder().encode("secret-de-test-suffisamment-long"),
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign"]
+    );
+    const signature = Buffer.from(await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(body))).toString("base64url");
+    expect(await readClaims(`${body}.${signature}`)).toEqual({ user: admin, sessionVersion: 0 });
   });
 
   it.each([undefined, "", "sans-point", "a.b.c.d"])(
@@ -106,7 +127,7 @@ describe("jeton de session", () => {
 // Le depot est public : un secret de repli connu permettrait de forger un
 // cookie ADMIN. Ce garde-fou a ete pose le 15/09/2026.
 describe("garde-fou AUTH_SECRET", () => {
-  it.each([undefined, "", "trop-court"])(
+  it.each([undefined, "", "trop-court", "seize-caracteres", "trente-et-un-caracteres-pile-ok"])(
     "refuse de signer en production sans secret valide (%s)",
     (value) => {
       vi.stubEnv("NODE_ENV", "production");
@@ -115,10 +136,10 @@ describe("garde-fou AUTH_SECRET", () => {
     }
   );
 
-  it("accepte un secret d'au moins seize caracteres en production", () => {
+  it("accepte un secret d'au moins trente-deux caracteres en production", () => {
     vi.stubEnv("NODE_ENV", "production");
-    vi.stubEnv("AUTH_SECRET", "seize-caracteres");
-    expect(authSecret()).toBe("seize-caracteres");
+    vi.stubEnv("AUTH_SECRET", "trente-deux-caracteres-tout-pile");
+    expect(authSecret()).toBe("trente-deux-caracteres-tout-pile");
   });
 
   it("tolere l'absence de secret hors production", () => {

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ExternalLink, LayoutDashboard, Mail, Package, ScrollText, ShoppingCart, Star, Tags } from "lucide-react";
+import { ExternalLink, KeyRound, LayoutDashboard, Mail, Package, ScrollText, ShoppingCart, Star, Tags } from "lucide-react";
 import { KelvinBar } from "@/components/ui/Primitives";
 import { Logo } from "@/components/layout/Logo";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
@@ -15,6 +15,7 @@ const links = [
   { href: "/admin/avis", label: "Avis", icon: Star },
   { href: "/admin/newsletter", label: "Newsletter", icon: Mail },
   { href: "/admin/commandes", label: "Commandes", icon: ShoppingCart },
+  { href: "/admin/acces-clients", label: "Accès clients", icon: KeyRound },
   { href: "/admin/journal", label: "Journal", icon: ScrollText },
 ];
 

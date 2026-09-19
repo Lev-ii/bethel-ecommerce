@@ -125,6 +125,8 @@ export interface User {
   role: UserRole;
   phone?: string;
   createdAt: string;
+  /** Incrementee a chaque changement de mot de passe : revoque les sessions anterieures. */
+  sessionVersion: number;
 }
 
 /** Ce que l'application manipule d'un utilisateur connecte. */

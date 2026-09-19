@@ -25,6 +25,7 @@ export const AUDIT_ACTIONS = {
   "auth.admin_login": "Connexion administrateur",
   "auth.admin_login_failed": "Connexion administrateur refusée",
   "auth.password_reset": "Mot de passe réinitialisé",
+  "auth.reset_link_created": "Lien de réinitialisation créé pour un client",
   "demo.reset": "Démonstration réinitialisée",
 } as const;
 
@@ -35,7 +36,7 @@ export const AUDIT_CATEGORIES = {
   categories: { label: "Catégories", actions: ["category.created", "category.updated", "category.reordered", "category.deleted"] },
   avis: { label: "Avis", actions: ["review.published", "review.rejected"] },
   commandes: { label: "Commandes", actions: ["order.status_changed"] },
-  connexions: { label: "Connexions", actions: ["auth.admin_login", "auth.admin_login_failed", "auth.password_reset"] },
+  connexions: { label: "Connexions", actions: ["auth.admin_login", "auth.admin_login_failed", "auth.password_reset", "auth.reset_link_created"] },
   systeme: { label: "Système", actions: ["demo.reset"] },
 } as const satisfies Record<string, { label: string; actions: readonly AuditAction[] }>;
 
