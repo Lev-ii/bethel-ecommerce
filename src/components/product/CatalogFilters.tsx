@@ -77,6 +77,7 @@ export function CatalogFilters({ resultCount, categories }: { resultCount: numbe
             className="field sm:w-52"
           >
             <option value="recent">Trier : nos ajouts</option>
+            <option value="nouveautes">Nouveautés d&apos;abord</option>
             <option value="prix-croissant">Prix croissant</option>
             <option value="prix-decroissant">Prix décroissant</option>
           </select>

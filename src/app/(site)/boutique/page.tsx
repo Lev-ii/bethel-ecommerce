@@ -33,7 +33,7 @@ export default async function BoutiquePage({
   const products = await getProducts({
     category: category?.slug as CategorySlug | undefined,
     search: sp.q,
-    sort: sp.tri as "prix-croissant" | "prix-decroissant" | undefined,
+    sort: sp.tri as "nouveautes" | "prix-croissant" | "prix-decroissant" | undefined,
     inStockOnly: sp.dispo === "1",
   });
 

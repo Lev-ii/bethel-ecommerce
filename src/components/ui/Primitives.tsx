@@ -95,10 +95,12 @@ export function EmptyState({
 }
 
 export function SectionHeading({
+  id,
   eyebrow,
   title,
   action,
 }: {
+  id?: string;
   eyebrow: string;
   title: string;
   action?: ReactNode;
@@ -107,7 +109,7 @@ export function SectionHeading({
     <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
       <div className="space-y-1.5">
         <Eyebrow>{eyebrow}</Eyebrow>
-        <h2 className="text-2xl sm:text-3xl">{title}</h2>
+        <h2 id={id} className="text-2xl sm:text-3xl">{title}</h2>
       </div>
       {action}
     </div>

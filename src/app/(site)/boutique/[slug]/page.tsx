@@ -7,6 +7,7 @@ import { AddToCart } from "@/components/product/AddToCart";
 import { ProductGallery } from "@/components/product/ProductGallery";
 import { ProductCard } from "@/components/product/ProductCard";
 import { ReviewStars } from "@/components/product/ReviewStars";
+import { NewBadge } from "@/components/product/NewBadge";
 import { Eyebrow, Price, StockBadge } from "@/components/ui/Primitives";
 import {
   getCategory,
@@ -81,7 +82,10 @@ export default async function ProduitPage({ params }: { params: Params }) {
         <ProductGallery name={product.name} images={galleryImages} />
 
         <div>
-          <Eyebrow>{product.brand}</Eyebrow>
+          <div className="flex items-center gap-3">
+            <Eyebrow>{product.brand}</Eyebrow>
+            {product.isNew ? <NewBadge /> : null}
+          </div>
           <h1 className="mt-2 text-3xl sm:text-4xl">{product.name}</h1>
           <p className="mt-3 text-lg text-fg-2">{product.headline}</p>
           {reviews.count > 0 && reviews.average !== null ? (
