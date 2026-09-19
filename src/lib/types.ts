@@ -49,6 +49,15 @@ export interface Product {
   createdAt?: string;
   /** Badge « Nouveau » (voir lib/shop/novelty.ts). */
   isNew?: boolean;
+  /**
+   * Promotion datee fixee par l'administration (voir lib/shop/promotion.ts).
+   * Pendant qu'elle est active, price et compareAtPrice ci-dessus sont deja
+   * le prix promo et le prix normal barre.
+   */
+  promotion?: { price: number; startsAt?: string; endsAt: string; active: boolean };
+  /** Prix saisis par l'administration, hors promotion datee (formulaire). */
+  regularPrice?: number;
+  regularCompareAtPrice?: number;
 }
 
 export type StockState = "in" | "low" | "out";

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { X } from "lucide-react";
 import { GearImage } from "@/components/product/GearImage";
+import { PromoCountdown } from "@/components/product/PromoCountdown";
 import { discountPercent, formatPrice } from "@/lib/format";
 import type { Product } from "@/lib/types";
 
@@ -119,6 +120,9 @@ export function ArrivalCard({ arrival, promo }: { arrival?: Product; promo?: Pro
                       <span className="ml-2 text-fg-3 line-through">{formatPrice(product.compareAtPrice)}</span>
                     ) : null}
                   </p>
+                  {kind === "promo" && product.promotion?.active ? (
+                    <PromoCountdown endsAt={product.promotion.endsAt} className="mt-0.5" />
+                  ) : null}
                 </div>
               </Link>
             </li>

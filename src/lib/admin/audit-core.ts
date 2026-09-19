@@ -69,6 +69,7 @@ const FIELD_LABELS: Record<string, string> = {
   slug: "Adresse",
   productsMoved: "Produits déplacés",
   correction: "Correction",
+  promotion: "Promotion datée",
 };
 
 const MONEY = new Set(["price", "compareAtPrice"]);

@@ -25,6 +25,8 @@ interface CartState {
   add: (product: Product, quantity?: number) => void;
   setQuantity: (productId: string, quantity: number) => void;
   remove: (productId: string) => void;
+  /** Reporte les prix changes (voir placeOrder, priceChanges). */
+  updatePrices: (changes: Array<{ productId: string; to: number }>) => void;
   clear: () => void;
   closeDrawer: () => void;
   markReady: () => void;
@@ -75,6 +77,14 @@ export const useCart = create<CartState>()(
             drawerOpen: true,
           };
         }),
+
+      updatePrices: (changes) =>
+        set((state) => ({
+          items: state.items.map((i) => {
+            const change = changes.find((c) => c.productId === i.productId);
+            return change ? { ...i, unitPrice: change.to } : i;
+          }),
+        })),
 
       setQuantity: (productId, quantity) =>
         set((state) => ({

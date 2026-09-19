@@ -13,6 +13,7 @@ import {
 import { GearImage } from "@/components/product/GearImage";
 import { createProduct, updateProduct, deleteProductImage, reorderProductImages } from "@/lib/admin/actions";
 import { productErrorField, productErrorMessage } from "@/lib/admin/messages";
+import { formatPromotionEnd, toShopDateTimeInput } from "@/lib/shop/promotion";
 import type { Category, Product, Spec } from "@/lib/types";
 
 /**
@@ -43,6 +44,11 @@ export function ProductForm({
   );
   const [preview, setPreview] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  // Une promotion terminee n'est pas reproposee : l'enregistrer la retire.
+  const promotion =
+    product?.promotion && Date.parse(product.promotion.endsAt) > Date.now() ? product.promotion : undefined;
+  const activePromotion = promotion?.active ? promotion : undefined;
 
   const errorFor = (field: string) =>
     invalidField === field ? message : undefined;
@@ -256,7 +262,7 @@ export function ProductForm({
             required
             min={0}
             step={500}
-            defaultValue={product?.price}
+            defaultValue={product?.regularPrice ?? product?.price}
             error={errorFor("price")}
           />
           <Field
@@ -266,9 +272,9 @@ export function ProductForm({
             type="number"
             min={0}
             step={500}
-            defaultValue={product?.compareAtPrice}
+            defaultValue={product ? (product.regularPrice !== undefined ? product.regularCompareAtPrice : product.compareAtPrice) : undefined}
             error={errorFor("compareAtPrice")}
-            hint="À remplir seulement en cas de promotion."
+            hint="Réduction permanente, sans date. Pour une promotion limitée dans le temps, voir plus bas."
           />
           <Field
             id="stock"
@@ -291,6 +297,56 @@ export function ProductForm({
             hint="En dessous, le produit remonte dans les alertes."
           />
         </div>
+      </section>
+
+      {/* ---------------------------------------------- Promotion datee */}
+      <section className="card p-5">
+        <h2 className="text-lg">Promotion datée</h2>
+        <p className="mt-1 text-sm text-fg-2">
+          Pendant la promotion, le prix promo est affiché et facturé, avec un compte à rebours en boutique. À la
+          fin, le prix de vente revient tout seul. Heures d&apos;Abidjan.
+        </p>
+        {activePromotion ? (
+          <p className="mt-3 rounded-card border border-danger/30 bg-danger/5 px-3 py-2 text-sm">
+            <span className="font-semibold text-danger">En cours</span> : {activePromotion.price.toLocaleString("fr-FR")} F{" "}
+            {formatPromotionEnd(activePromotion.endsAt)}.
+          </p>
+        ) : null}
+        <div className="mt-4 grid gap-4 sm:grid-cols-3">
+          <Field
+            id="promoPrice"
+            name="promoPrice"
+            label="Prix promo"
+            type="number"
+            min={0}
+            step={500}
+            defaultValue={promotion?.price}
+            error={errorFor("promoPrice")}
+          />
+          <Field
+            id="promoStartsAt"
+            name="promoStartsAt"
+            label="Début de la promotion"
+            type="datetime-local"
+            defaultValue={toShopDateTimeInput(promotion?.startsAt)}
+            error={errorFor("promoStartsAt")}
+            hint="Vide : dès l'enregistrement."
+          />
+          <Field
+            id="promoEndsAt"
+            name="promoEndsAt"
+            label="Fin de la promotion"
+            type="datetime-local"
+            defaultValue={toShopDateTimeInput(promotion?.endsAt)}
+            error={errorFor("promoEndsAt")}
+          />
+        </div>
+        {promotion ? (
+          <label className="mt-4 flex items-center gap-2 text-sm text-fg-2">
+            <input type="checkbox" name="removePromotion" className="h-4 w-4 accent-brand" />
+            Arrêter la promotion maintenant
+          </label>
+        ) : null}
       </section>
 
       {/* ----------------------------------------------- Fiche technique */}

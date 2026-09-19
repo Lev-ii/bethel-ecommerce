@@ -12,6 +12,9 @@ export const productErrorMessages: Record<string, string> = {
   prix: "Le prix doit être supérieur à zéro.",
   "prix-barre": "Le prix barré doit être supérieur au prix de vente.",
   stock: "Le stock doit être un nombre positif.",
+  "promo-prix": "Le prix promo doit être supérieur à zéro et inférieur au prix de vente.",
+  "promo-fin": "Indiquez une date de fin de promotion à venir.",
+  "promo-debut": "Le début de la promotion doit précéder sa fin.",
   image: "Format d'image non accepté, ou fichier trop lourd (3 Mo maximum).",
   introuvable: "Ce matériel n'existe plus.",
   refus: "Action réservée à l'administration.",
@@ -29,6 +32,9 @@ export const productErrorField: Record<string, string> = {
   "prix-barre": "compareAtPrice",
   stock: "stock",
   image: "image",
+  "promo-prix": "promoPrice",
+  "promo-fin": "promoEndsAt",
+  "promo-debut": "promoStartsAt",
 };
 
 export function productErrorMessage(code?: string): string | undefined {
