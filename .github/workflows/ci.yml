@@ -3,8 +3,9 @@ name: CI
 on:
   push:
     branches: [main, develop, staging]
+  # Toutes les PR, y compris celles empilees sur une autre version
+  # (deploiement fonctionnalite par fonctionnalite).
   pull_request:
-    branches: [main, develop]
 
 # Une nouvelle poussee sur la meme branche annule la verification en cours :
 # inutile de payer deux fois pour un etat depasse.
