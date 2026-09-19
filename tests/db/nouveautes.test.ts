@@ -63,9 +63,12 @@ describe("nouveautes", () => {
     expect(ids).not.toContain("nouveau-test-b-15-jours");
     expect(ids).not.toContain("nouveau-test-d-brouillon");
 
-    const sorted = await getProducts({ sort: "nouveautes" });
-    expect(sorted[0].id).toBe("nouveau-test-c-aujourdhui");
-    expect(sorted.at(-1)?.id).toBe("nouveau-test-a-import");
+    // Ordre relatif seulement : les dates des produits de demonstration
+    // dependent de la base (en CI, certaines sont dans le futur).
+    const sorted = (await getProducts({ sort: "nouveautes" })).map((p) => p.id);
+    const rank = (id: string) => sorted.indexOf(id);
+    expect(rank("nouveau-test-c-aujourdhui")).toBeLessThan(rank("nouveau-test-b-15-jours"));
+    expect(rank("nouveau-test-b-15-jours")).toBeLessThan(rank("nouveau-test-a-import"));
   });
 
   it("limite la section au nombre demandé", async () => {
