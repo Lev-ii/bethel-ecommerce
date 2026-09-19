@@ -10,6 +10,7 @@ import {
   getFallbackProductBySlug,
   getFallbackProducts,
   getFallbackProductsFor,
+  getFallbackTopPromoProduct,
   catalogRead,
   isDatabaseUnavailableError,
   isFreshCatalogEntry,
@@ -222,6 +223,24 @@ export const getNewProducts = catalogCache<[limit?: number], Product[]>(
   "products:new",
   ["products"]
 );
+
+/**
+ * Promotion mise en avant : la plus forte reduction parmi les produits en
+ * vente et en stock. A reduction egale, la plus recente.
+ */
+async function getTopPromoProductUncached(): Promise<Product | undefined> {
+  const [row] = await catalogRead(sql<ProductRow[]>`
+    SELECT ${productColumns}
+    FROM products p
+    WHERE p.published = TRUE AND p.stock > 0 AND p.compare_at_price > p.price
+    ORDER BY (p.compare_at_price - p.price)::float8 / p.compare_at_price DESC, p.created_at DESC
+    LIMIT 1
+  `);
+  return row ? toProduct(row) : undefined;
+}
+export const getTopPromoProduct = catalogCache(getTopPromoProductUncached, getFallbackTopPromoProduct, "products:top-promo", [
+  "products",
+]);
 
 async function getProductBySlugUncached(slug: string): Promise<Product | undefined> {
   const [row] = await catalogRead(sql<ProductRow[]>`

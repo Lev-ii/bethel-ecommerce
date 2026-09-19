@@ -25,6 +25,15 @@ export function getFallbackProductsFor(
   return filtered;
 }
 
+/** Meme choix que repository.getTopPromoProduct : la plus forte reduction en stock. */
+export function getFallbackTopPromoProduct(): Product | undefined {
+  const discount = (p: Product) => (p.compareAtPrice ? (p.compareAtPrice - p.price) / p.compareAtPrice : 0);
+  return getFallbackProducts()
+    .filter((p) => p.stock > 0 && p.compareAtPrice && p.compareAtPrice > p.price)
+    .sort((a, b) => discount(b) - discount(a))
+    .at(0);
+}
+
 export function getFallbackFeaturedProducts(limit = 4): Product[] {
   return getFallbackProducts()
     .filter((product) => product.featured || product.isHero)
