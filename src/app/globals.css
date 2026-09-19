@@ -102,6 +102,17 @@
   html {
     -webkit-text-size-adjust: 100%;
   }
+  /* Grands ecrans : tout est en rem, le texte et les espacements grandissent
+     avec l'ecran. Sans cela, sur un 3440 px, le texte restait minuscule. */
+  @media (min-width: 1920px) {
+    html { font-size: 106.25%; }
+  }
+  @media (min-width: 2400px) {
+    html { font-size: 118.75%; }
+  }
+  @media (min-width: 3200px) {
+    html { font-size: 131.25%; }
+  }
 
   body {
     @apply bg-bg text-fg font-sans antialiased;
@@ -145,8 +156,10 @@
   @media (min-width: 1920px) {
     .shell { max-width: 1720px; }
   }
+  /* Ecrans ultra-larges (3440 px et plus) : le contenu suit l'ecran au lieu de
+     laisser deux grandes bandes vides. */
   @media (min-width: 2400px) {
-    .shell { max-width: 2160px; }
+    .shell { max-width: min(88vw, 3200px); }
   }
 
   .kelvin-bar {

@@ -17,7 +17,7 @@ const LONG_ID = "e2e-nom-tres-long";
 const LONG_NAME =
   "Kit de tournage complet pour smartphone avec stabilisateur trois axes, micro-cravate sans fil double et panneau LED bicolore";
 
-const WIDTHS = [375, 768, 1024, 1280, 1440, 1920, 2560];
+const WIDTHS = [375, 768, 1024, 1280, 1440, 1920, 2560, 3440];
 const SHOP_PAGES = ["/", "/boutique", `/boutique/${LONG_ID}`, "/panier", "/suivi"];
 const ADMIN_PAGES = ["/admin", "/admin/produits", "/admin/categories", "/admin/avis", "/admin/newsletter", "/admin/commandes", "/admin/journal"];
 
