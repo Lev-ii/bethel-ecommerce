@@ -19,17 +19,35 @@ const MAX_AGE_SECONDS = 60 * 60 * 24 * 7; // 7 jours
 interface Payload extends SessionUser {
   /** Expiration, en secondes depuis l'epoque. */
   exp: number;
+  /**
+   * Version de session du compte au moment de la connexion (users.session_version).
+   * Absente des jetons emis avant son introduction : elle vaut alors 0.
+   */
+  sv?: number;
 }
+
+/** Ce que porte un jeton valide : l'utilisateur et la version de session. */
+export interface SessionClaims {
+  user: SessionUser;
+  sessionVersion: number;
+}
+
+/**
+ * 32 caracteres au minimum : un secret court se devine hors ligne a partir
+ * d'un seul cookie de session, puis permet de signer un cookie ADMIN.
+ */
+export const AUTH_SECRET_MIN_LENGTH = 32;
 
 export function authSecret(): string {
   const value = process.env.AUTH_SECRET;
-  if (value && value.length >= 16) return value;
+  if (value && value.length >= AUTH_SECRET_MIN_LENGTH) return value;
   // Le depot est public : un secret de repli connu permettrait a n'importe qui
   // de forger un cookie de session ADMIN. En production, mieux vaut refuser de
   // signer que de signer avec une valeur publique.
   if (process.env.NODE_ENV === "production") {
     throw new Error(
-      "AUTH_SECRET est absent ou trop court (16 caractères minimum). " +
+      `AUTH_SECRET est absent ou trop court (${AUTH_SECRET_MIN_LENGTH} caractères minimum, ` +
+        "par exemple : openssl rand -base64 32). " +
         "Définis-le dans les variables d'environnement avant de déployer."
     );
   }
@@ -60,10 +78,14 @@ async function key(): Promise<CryptoKey> {
   );
 }
 
-export async function createToken(user: SessionUser): Promise<string> {
+export async function createToken(user: SessionUser, sessionVersion = 0): Promise<string> {
   const payload: Payload = {
-    ...user,
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    role: user.role,
     exp: Math.floor(Date.now() / 1000) + MAX_AGE_SECONDS,
+    sv: sessionVersion,
   };
   const body = toBase64Url(new TextEncoder().encode(JSON.stringify(payload)));
   const signature = await crypto.subtle.sign(
@@ -74,9 +96,20 @@ export async function createToken(user: SessionUser): Promise<string> {
   return `${body}.${toBase64Url(new Uint8Array(signature))}`;
 }
 
+/**
+ * Verifie la signature et l'expiration. Ne consulte pas la base : c'est ce
+ * que le middleware peut faire a chaque navigation. La revocation (version de
+ * session) est verifiee par currentUser(), cote serveur.
+ */
 export async function readToken(
   token: string | undefined
 ): Promise<SessionUser | null> {
+  return (await readClaims(token))?.user ?? null;
+}
+
+export async function readClaims(
+  token: string | undefined
+): Promise<SessionClaims | null> {
   if (!token) return null;
 
   const [body, signature] = token.split(".");
@@ -103,10 +136,13 @@ export async function readToken(
     if (payload.exp * 1000 < Date.now()) return null;
 
     return {
-      id: payload.id,
-      email: payload.email,
-      name: payload.name,
-      role: payload.role,
+      user: {
+        id: payload.id,
+        email: payload.email,
+        name: payload.name,
+        role: payload.role,
+      },
+      sessionVersion: Number.isInteger(payload.sv) ? (payload.sv as number) : 0,
     };
   } catch {
     return null;

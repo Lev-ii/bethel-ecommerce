@@ -5,10 +5,13 @@ import { loginLocked } from "@/lib/auth/login-throttle";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { createHash, randomBytes, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { sql } from "@/lib/db/client";
 import { getUserByEmail } from "@/lib/repository";
 import { hashPassword, passwordProblem, verifyPassword } from "@/lib/auth/password";
+import { safeRedirectPath } from "@/lib/auth/redirect";
+import { recordFailedResetAttempt, resetAttemptsBlocked, takeResetRequest } from "@/lib/auth/reset-throttle";
+import { consumeResetToken } from "@/lib/auth/reset-token";
 import {
   SESSION_COOKIE,
   cookieOptions,
@@ -16,10 +19,6 @@ import {
   homeFor,
 } from "@/lib/auth/session";
 import type { User } from "@/lib/types";
-
-function hashResetToken(token: string): string {
-  return createHash("sha256").update(token).digest("hex");
-}
 
 /**
  * Actions d'authentification.
@@ -48,12 +47,10 @@ async function startSession(
   store: Awaited<ReturnType<typeof cookies>>,
   user: User
 ) {
-  const token = await createToken({
-    id: user.id,
-    email: user.email,
-    name: user.name,
-    role: user.role,
-  });
+  const token = await createToken(
+    { id: user.id, email: user.email, name: user.name, role: user.role },
+    user.sessionVersion
+  );
   store.set(SESSION_COOKIE, token, cookieOptions);
 }
 
@@ -62,7 +59,9 @@ export async function signIn(formData: FormData) {
   const store = await cookies();
   const email = normalizeEmail(formData.get("email"));
   const password = String(formData.get("password") ?? "");
-  const suite = String(formData.get("suite") ?? "");
+  // Une destination douteuse est ignoree, pas signalee : la personne arrive
+  // simplement sur son espace.
+  const suite = safeRedirectPath(formData.get("suite")) ?? "";
   const back = suite ? `&suite=${encodeURIComponent(suite)}` : "";
 
   if (!email || !password) {
@@ -151,6 +150,7 @@ export async function signUp(formData: FormData) {
     passwordHash,
     role: "CLIENT",
     createdAt: new Date().toISOString(),
+    sessionVersion: 0,
   };
 
   await sql`
@@ -181,27 +181,29 @@ export async function signOut() {
   redirect("/");
 }
 
+/**
+ * Demande de lien de reinitialisation.
+ *
+ * Aucun email n'est encore envoye (service a souscrire) : la page invite le
+ * client a demander son lien sur WhatsApp, et l'administration le cree depuis
+ * "Accès clients". Aucun jeton n'est donc cree ici : il ne parviendrait a
+ * personne, et remplacerait un lien deja remis par l'administration.
+ * Le jeton ne doit jamais apparaitre dans un journal.
+ */
 export async function requestPasswordReset(formData: FormData) {
   const email = normalizeEmail(formData.get("email"));
   if (!email) redirect("/mot-de-passe-oublie?erreur=email");
 
+  let allowed = false;
   let user;
   try {
-    user = await getUserByEmail(email);
+    allowed = await takeResetRequest(await clientIp(), email);
+    if (allowed) user = await getUserByEmail(email);
   } catch {
     redirect("/mot-de-passe-oublie?erreur=service");
   }
-  if (user) {
-    const token = randomBytes(32).toString("hex");
-    await sql`
-      DELETE FROM password_reset_tokens WHERE user_id = ${user.id} OR expires_at < now()
-    `;
-    await sql`
-      INSERT INTO password_reset_tokens (user_id, token_hash, expires_at)
-      VALUES (${user.id}, ${hashResetToken(token)}, now() + interval '30 minutes')
-    `;
-    console.info(`[auth] lien de réinitialisation généré pour ${email}: /mot-de-passe-oublie/${token}`);
-  }
+  if (!allowed) redirect("/mot-de-passe-oublie?erreur=trop");
+  if (user) console.info(`[auth] demande de réinitialisation pour le compte ${user.id}`);
 
   redirect("/mot-de-passe-oublie?envoye=1");
 }
@@ -209,27 +211,28 @@ export async function requestPasswordReset(formData: FormData) {
 export async function resetPassword(formData: FormData) {
   const token = String(formData.get("token") ?? "");
   const password = String(formData.get("password") ?? "");
+  const ip = await clientIp();
+
+  // Verifie avant tout le reste, y compris le hachage (couteux) du mot de passe.
+  let blocked = false;
+  try {
+    blocked = await resetAttemptsBlocked(ip);
+  } catch {
+    redirect("/mot-de-passe-oublie?erreur=service");
+  }
+  if (blocked) redirect("/mot-de-passe-oublie?erreur=trop");
+
   if (!token || passwordProblem(password)) {
     redirect(`/mot-de-passe-oublie/${encodeURIComponent(token)}?erreur=motdepasse`);
   }
 
-  const passwordHash = await hashPassword(password);
-  const rows = await sql`
-    UPDATE users u
-    SET password_hash = ${passwordHash}
-    FROM password_reset_tokens t
-    WHERE t.user_id = u.id
-      AND t.token_hash = ${hashResetToken(token)}
-      AND t.expires_at > now()
-      AND t.used_at IS NULL
-    RETURNING u.id, u.email, u.role
-  `;
-  if (rows.length === 0) redirect("/mot-de-passe-oublie?erreur=invalide");
-  await sql`
-    UPDATE password_reset_tokens SET used_at = now()
-    WHERE token_hash = ${hashResetToken(token)}
-  `;
-  const [account] = rows as unknown as Array<{ id: string; email: string; role: string }>;
+  const account = await consumeResetToken(token, await hashPassword(password));
+  if (!account) {
+    await recordFailedResetAttempt(ip).catch((error) =>
+      console.error("[auth] tentative de réinitialisation non comptée", error)
+    );
+    redirect("/mot-de-passe-oublie?erreur=invalide");
+  }
   if (account.role === "ADMIN") {
     await recordAuditQuietly({
       action: "auth.password_reset",

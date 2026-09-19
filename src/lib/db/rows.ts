@@ -141,6 +141,7 @@ export interface UserRow {
   role: string;
   phone: string | null;
   created_at: Date;
+  session_version: number;
 }
 
 export function toUser(row: UserRow): User {
@@ -152,5 +153,6 @@ export function toUser(row: UserRow): User {
     role: row.role as User["role"],
     phone: row.phone ?? undefined,
     createdAt: row.created_at.toISOString(),
+    sessionVersion: row.session_version,
   };
 }

@@ -1,15 +1,42 @@
 import "server-only";
 
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { SESSION_COOKIE, readToken } from "@/lib/auth/session";
-import type { SessionUser } from "@/lib/types";
+import { sql } from "@/lib/db/client";
+import { SESSION_COOKIE, readClaims } from "@/lib/auth/session";
+import type { SessionUser, UserRole } from "@/lib/types";
 
-/** Utilisateur connecte, ou null. Ne redirige jamais. */
-export async function currentUser(): Promise<SessionUser | null> {
+/**
+ * Utilisateur connecte, ou null. Ne redirige jamais.
+ *
+ * Au-dela de la signature, le compte est relu en base : la session est
+ * refusee si le mot de passe a change depuis la connexion (version de session
+ * incrementee), si le role a change, ou si le compte n'existe plus. Un cookie
+ * derobe cesse ainsi de valoir des que la victime change son mot de passe.
+ * Une panne de base refuse la session plutot que de l'accepter sans controle.
+ *
+ * cache() : une seule lecture par requete, meme si la mise en page et la page
+ * l'appellent chacune.
+ */
+export const currentUser = cache(async (): Promise<SessionUser | null> => {
   const store = await cookies();
-  return readToken(store.get(SESSION_COOKIE)?.value);
-}
+  const claims = await readClaims(store.get(SESSION_COOKIE)?.value);
+  if (!claims) return null;
+
+  try {
+    const [account] = await sql<Array<{ session_version: number; role: UserRole }>>`
+      SELECT session_version, role FROM users WHERE id = ${claims.user.id}
+    `;
+    if (!account) return null;
+    if (account.session_version !== claims.sessionVersion) return null;
+    if (account.role !== claims.user.role) return null;
+  } catch (error) {
+    console.error("[auth] vérification de la session impossible", error);
+    return null;
+  }
+  return claims.user;
+});
 
 /**
  * Exige une session administrateur.
