@@ -57,9 +57,12 @@ describe("nouveautes", () => {
     expect((await getProductBySlug("nouveau-test-a-import"))?.isNew).toBe(false);
 
     const arrivals = await getNewProducts(50);
-    expect(arrivals[0].id).toBe("nouveau-test-c-aujourdhui");
     expect(arrivals.every((p) => p.isNew)).toBe(true);
     const ids = arrivals.map((p) => p.id);
+    expect(ids).toContain("nouveau-test-c-aujourdhui");
+    // Du plus recent au plus ancien.
+    const dates = arrivals.map((p) => Date.parse(p.createdAt!));
+    expect(dates).toEqual([...dates].sort((x, y) => y - x));
     expect(ids).not.toContain("nouveau-test-b-15-jours");
     expect(ids).not.toContain("nouveau-test-d-brouillon");
 
