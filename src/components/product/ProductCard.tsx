@@ -6,6 +6,7 @@ import { GearImage } from "@/components/product/GearImage";
 import { ReviewStars } from "@/components/product/ReviewStars";
 import { AddToCartCard } from "@/components/product/AddToCartCard";
 import { NewBadge } from "@/components/product/NewBadge";
+import { PromoCountdown } from "@/components/product/PromoCountdown";
 
 export function ProductCard({ product }: { product: Product }) {
   const out = stockState(product) === "out";
@@ -37,6 +38,7 @@ export function ProductCard({ product }: { product: Product }) {
           ) : null}
           <div className="pt-1">
             <Price product={product} />
+            {product.promotion?.active ? <PromoCountdown endsAt={product.promotion.endsAt} className="mt-1.5" /> : null}
           </div>
         </div>
       </Link>

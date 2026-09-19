@@ -32,6 +32,12 @@ export interface ProductRow {
   review_count?: number | null;
   created_at?: Date | null;
   is_new?: boolean | null;
+  promo_price?: number | null;
+  promo_starts_at?: Date | null;
+  promo_ends_at?: Date | null;
+  promo_active?: boolean | null;
+  regular_price?: number | null;
+  regular_compare_at_price?: number | null;
 }
 
 export function toProduct(row: ProductRow): Product {
@@ -60,6 +66,18 @@ export function toProduct(row: ProductRow): Product {
         : undefined,
     createdAt: row.created_at ? row.created_at.toISOString() : undefined,
     isNew: row.is_new === true,
+    promotion:
+      row.promo_price && row.promo_ends_at
+        ? {
+            price: row.promo_price,
+            startsAt: row.promo_starts_at ? row.promo_starts_at.toISOString() : undefined,
+            endsAt: row.promo_ends_at.toISOString(),
+            active: row.promo_active === true,
+          }
+        : undefined,
+    // Lignes lues sans les colonnes de promotion : prix saisis = prix affiches.
+    regularPrice: row.regular_price ?? row.price,
+    regularCompareAtPrice: (row.regular_price != null ? row.regular_compare_at_price : row.compare_at_price) ?? undefined,
   };
 }
 

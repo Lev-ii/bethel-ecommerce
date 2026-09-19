@@ -12,6 +12,7 @@ import { deleteProductImageFile, deleteProductImages, saveProductImage, UploadEr
 import { firstFreeSlug, slugify } from "@/lib/slug";
 import { canAdvanceOrder, orderStatusChange } from "@/lib/format";
 import { notifyCustomerLater, type CustomerEvent } from "@/lib/shop/notifications";
+import { parsePromotion, type PromotionInput } from "@/lib/shop/promotion";
 import type { CategorySlug, OrderStatus, PaymentMethod, Spec } from "@/lib/types";
 
 /** Ajoute un suffixe si l'identifiant est deja pris. */
@@ -82,6 +83,7 @@ interface ParsedFields {
   isHero: boolean;
   published: boolean;
   specs: Spec[];
+  promotion: PromotionInput | null;
 }
 
 function parseFields(formData: FormData): ParsedFields {
@@ -106,6 +108,19 @@ function parseFields(formData: FormData): ParsedFields {
   }
   if (!Number.isInteger(stock) || stock < 0) throw invalid("stock");
 
+  const promo =
+    formData.get("removePromotion") === "on"
+      ? { promotion: null }
+      : parsePromotion(
+          {
+            price: String(formData.get("promoPrice") ?? ""),
+            startsAt: String(formData.get("promoStartsAt") ?? ""),
+            endsAt: String(formData.get("promoEndsAt") ?? ""),
+          },
+          Math.round(price)
+        );
+  if ("error" in promo) throw invalid(promo.error);
+
   return {
     name,
     brand,
@@ -120,6 +135,7 @@ function parseFields(formData: FormData): ParsedFields {
     isHero: formData.get("isHero") === "on",
     published: formData.get("published") === "on",
     specs: readSpecs(formData),
+    promotion: promo.promotion,
   };
 }
 
@@ -175,6 +191,13 @@ function shouldReplaceImages(formData: FormData): boolean {
   return formData.get("replaceImages") === "on";
 }
 
+/** Promotion lisible dans le journal : « 45 000 F du 20/09 18:00 au 25/09 18:00 (UTC) ». */
+function promotionLabel(promotion: PromotionInput): string {
+  const at = (iso: string) => iso.slice(8, 10) + "/" + iso.slice(5, 7) + " " + iso.slice(11, 16);
+  const start = promotion.startsAt ? `du ${at(promotion.startsAt)} ` : "";
+  return `${promotion.price} F ${start}au ${at(promotion.endsAt)} (heure d'Abidjan)`;
+}
+
 /* --------------------------------------------------------------- Creation */
 
 export async function createProduct(formData: FormData) {
@@ -198,12 +221,14 @@ export async function createProduct(formData: FormData) {
         INSERT INTO products (
           id, slug, name, brand, category, headline, description,
           price, compare_at_price, stock, low_stock_threshold,
-          image, featured, is_hero, published
+          image, featured, is_hero, published,
+          promo_price, promo_starts_at, promo_ends_at
         ) VALUES (
           ${id}, ${slug}, ${fields.name}, ${fields.brand}, ${fields.category},
           ${fields.headline}, ${fields.description}, ${fields.price},
           ${fields.compareAtPrice}, ${fields.stock}, ${fields.lowStockThreshold},
-          ${image}, ${fields.featured}, ${fields.isHero}, ${fields.published}
+          ${image}, ${fields.featured}, ${fields.isHero}, ${fields.published},
+          ${fields.promotion?.price ?? null}, ${fields.promotion?.startsAt ?? null}, ${fields.promotion?.endsAt ?? null}
         )
       `;
       // Un seul produit vedette : on retire la designation aux autres.
@@ -230,6 +255,7 @@ export async function createProduct(formData: FormData) {
           stock: { to: fields.stock },
           category: { to: fields.category },
           published: { to: fields.published },
+          ...(fields.promotion ? { promotion: { to: promotionLabel(fields.promotion) } } : {}),
         },
       });
     });
@@ -265,10 +291,14 @@ export async function updateProduct(formData: FormData) {
         published: boolean;
         featured: boolean;
         is_hero: boolean;
+        promo_price: number | null;
+        promo_starts_at: Date | null;
+        promo_ends_at: Date | null;
       }>
     >`
       SELECT image, name, brand, category, headline, description, price, compare_at_price,
-             stock, low_stock_threshold, published, featured, is_hero
+             stock, low_stock_threshold, published, featured, is_hero,
+             promo_price, promo_starts_at, promo_ends_at
       FROM products WHERE id = ${id}
     `;
     if (!existing) throw invalid("introuvable");
@@ -301,6 +331,9 @@ export async function updateProduct(formData: FormData) {
           image = ${uploaded ?? existing.image},
           featured = ${fields.featured}, is_hero = ${fields.isHero},
           published = ${fields.published},
+          promo_price = ${fields.promotion?.price ?? null},
+          promo_starts_at = ${fields.promotion?.startsAt ?? null},
+          promo_ends_at = ${fields.promotion?.endsAt ?? null},
           updated_at = now()
         WHERE id = ${id}
       `;
@@ -324,6 +357,15 @@ export async function updateProduct(formData: FormData) {
         ["name", "brand", "category", "headline", "description", "price", "compareAtPrice", "stock", "lowStockThreshold", "published", "featured", "isHero"]
       );
       if (uploadedImages.length > 0) changes.imagesAdded = { to: uploadedImages.length };
+      const promoBefore = existing.promo_price && existing.promo_ends_at
+        ? promotionLabel({
+            price: existing.promo_price,
+            startsAt: existing.promo_starts_at?.toISOString() ?? null,
+            endsAt: existing.promo_ends_at.toISOString(),
+          })
+        : null;
+      const promoAfter = fields.promotion ? promotionLabel(fields.promotion) : null;
+      if (promoBefore !== promoAfter) changes.promotion = { from: promoBefore, to: promoAfter };
       if (Object.keys(changes).length > 0) {
         await recordAudit(tx as unknown as typeof sql, {
           action: "product.updated",

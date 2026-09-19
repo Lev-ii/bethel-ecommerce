@@ -4,7 +4,8 @@ import { randomUUID } from "node:crypto";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { currentUser } from "@/lib/auth/current";
 import { sql } from "@/lib/db/client";
-import { buildOrderReference } from "@/lib/format";
+import { effectivePriceSql } from "@/lib/db/promo";
+import { buildOrderReference, formatPrice } from "@/lib/format";
 import { notifyCustomerLater } from "@/lib/shop/notifications";
 import { paymentProvider } from "@/lib/shop/payment";
 import { invoiceToken } from "@/lib/shop/invoice";
@@ -17,7 +18,19 @@ import type { PaymentMethod } from "@/lib/types";
  * insuffisant). Toute autre erreur est technique : journalisee, jamais
  * affichee.
  */
-class OrderRejection extends Error {}
+class OrderRejection extends Error {
+  constructor(message: string, public priceChanges?: PriceChange[]) {
+    super(message);
+  }
+}
+
+/** Prix d'un article qui a change depuis son ajout au panier (fin de promotion...). */
+export interface PriceChange {
+  productId: string;
+  name: string;
+  from: number;
+  to: number;
+}
 
 export interface PlaceOrderInput {
   customerName: string;
@@ -27,7 +40,12 @@ export interface PlaceOrderInput {
   address?: string;
   city?: string;
   paymentMethod: PaymentMethod;
-  items: Array<{ productId: string; quantity: number }>;
+  /**
+   * unitPrice : prix affiche dans le panier. S'il ne correspond plus au prix
+   * facture, la commande est refusee avant tout paiement et le panier corrige :
+   * le client ne paie jamais un montant qu'il n'a pas vu.
+   */
+  items: Array<{ productId: string; quantity: number; unitPrice?: number }>;
 }
 
 export interface PlaceOrderResult {
@@ -36,6 +54,8 @@ export interface PlaceOrderResult {
   accessToken?: string;
   total?: number;
   checkoutUrl?: string;
+  /** Prix changes depuis l'ajout au panier : a reporter dans le panier. */
+  priceChanges?: PriceChange[];
   /**
    * Le paiement en ligne est parti mais n'est pas encore confirme : la
    * demande Jeko est cree, le client doit encore valider sur son telephone.
@@ -43,6 +63,15 @@ export interface PlaceOrderResult {
    */
   paymentPending?: boolean;
   error?: string;
+}
+
+function priceChangeMessage(changes: PriceChange[]): string {
+  const [first] = changes;
+  const what =
+    changes.length === 1
+      ? `Le prix de ${first.name} est passé de ${formatPrice(first.from)} à ${formatPrice(first.to)}`
+      : `Le prix de ${changes.length} articles a changé`;
+  return `${what} (fin ou début d'une promotion). Votre panier est à jour : vérifiez le total puis validez à nouveau.`;
 }
 
 /**
@@ -105,12 +134,14 @@ export async function placeOrder(
           stock: number;
         }>
       >`
-        SELECT id, slug, name, price, stock FROM products
-        WHERE id = ANY(${ids}) AND published = TRUE
+        -- Prix effectif : le prix promo pendant une promotion datee, calcule
+        -- ici comme a l'affichage (voir db/promo.ts).
+        SELECT p.id, p.slug, p.name, ${effectivePriceSql} AS price, p.stock FROM products p
+        WHERE p.id = ANY(${ids}) AND p.published = TRUE
         -- Toujours le meme ordre de verrouillage. Sans lui, deux paniers
         -- contenant les memes produits pouvaient se bloquer mutuellement
         -- (146 commandes perdues sur 500 paniers croises, tests/charge).
-        ORDER BY id
+        ORDER BY p.id
         FOR UPDATE
       `;
 
@@ -119,6 +150,7 @@ export async function placeOrder(
       // Les fiches produits sont pre-generees : il faudra les rafraichir,
       // sinon celle du dernier exemplaire vendu continue d'afficher "En stock".
       const reservedSlugs: string[] = [];
+      const priceChanges: PriceChange[] = [];
 
       for (const item of input.items) {
         const product = byId.get(item.productId);
@@ -130,6 +162,9 @@ export async function placeOrder(
             `Il ne reste que ${product.stock} exemplaire(s) de ${product.name}.`
           );
         }
+        if (item.unitPrice !== undefined && item.unitPrice !== product.price) {
+          priceChanges.push({ productId: product.id, name: product.name, from: item.unitPrice, to: product.price });
+        }
         reservedSlugs.push(product.slug);
         reservedLines.push({
           productId: product.id,
@@ -137,6 +172,10 @@ export async function placeOrder(
           unitPrice: product.price,
           quantity: item.quantity,
         });
+      }
+
+      if (priceChanges.length > 0) {
+        throw new OrderRejection(priceChangeMessage(priceChanges), priceChanges);
       }
 
       const computedTotal = orderTotal(reservedLines, deliveryFee);
@@ -177,7 +216,7 @@ export async function placeOrder(
     // immediatement, meme si le paiement echoue ensuite (voir plus bas).
     revalidateTag("products");
   } catch (error) {
-    if (error instanceof OrderRejection) return { error: error.message };
+    if (error instanceof OrderRejection) return { error: error.message, priceChanges: error.priceChanges };
     console.error("[placeOrder] réservation échouée", { orderId, reference }, error);
     return { error: "La commande n'a pas pu être enregistrée. Réessayez dans un instant." };
   }

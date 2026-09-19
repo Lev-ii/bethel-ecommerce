@@ -50,6 +50,7 @@ export function CheckoutForm({
   const items = useCart((s) => s.items);
   const ready = useCart((s) => s.ready);
   const clear = useCart((s) => s.clear);
+  const updatePrices = useCart((s) => s.updatePrices);
   const subtotal = useCartTotal();
 
   const [mode, setMode] = useState<"livraison" | "retrait">("livraison");
@@ -189,9 +190,10 @@ export function CheckoutForm({
       address: mode === "livraison" ? form.address.trim() : undefined,
       city: mode === "livraison" ? form.city.trim() : undefined,
       paymentMethod,
-      items: items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
+      items: items.map((i) => ({ productId: i.productId, quantity: i.quantity, unitPrice: i.unitPrice })),
     });
 
+    if (result.priceChanges?.length) updatePrices(result.priceChanges);
     if (result.error || !result.reference) {
       setServerError(result.error ?? "La commande n'a pas pu être enregistrée.");
       setSubmitting(false);

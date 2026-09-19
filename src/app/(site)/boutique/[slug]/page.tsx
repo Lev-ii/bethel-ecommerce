@@ -8,6 +8,7 @@ import { ProductGallery } from "@/components/product/ProductGallery";
 import { ProductCard } from "@/components/product/ProductCard";
 import { ReviewStars } from "@/components/product/ReviewStars";
 import { NewBadge } from "@/components/product/NewBadge";
+import { PromoCountdown } from "@/components/product/PromoCountdown";
 import { Eyebrow, Price, StockBadge } from "@/components/ui/Primitives";
 import {
   getCategory,
@@ -101,6 +102,9 @@ export default async function ProduitPage({ params }: { params: Params }) {
             <Price product={product} size="lg" />
             <StockBadge product={product} />
           </div>
+          {product.promotion?.active ? (
+            <PromoCountdown endsAt={product.promotion.endsAt} variant="large" className="mt-4" />
+          ) : null}
 
           <div className="mt-7">
             <AddToCart product={product} />

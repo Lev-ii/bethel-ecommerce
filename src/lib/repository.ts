@@ -19,6 +19,7 @@ import { toOrder, toProduct, toUser, type OrderRow, type ProductRow, type UserRo
 import { ORDER_PAGE_SIZE, escapeLike, type OrderFilters } from "@/lib/admin/order-filters";
 import type { DashboardRange } from "@/lib/admin/dashboard-range";
 import { INITIAL_IMPORT_WINDOW_HOURS, NEW_PRODUCT_DAYS } from "@/lib/shop/novelty";
+import { effectiveCompareAtSql, effectivePriceSql, promoActiveSql } from "@/lib/db/promo";
 import type { Category, CategorySlug, Order, OrderStatus, Product, User } from "@/lib/types";
 
 /**
@@ -48,10 +49,16 @@ const isNewSql = sql`(
   AND p.created_at > (SELECT min(created_at) FROM products) + make_interval(hours => ${INITIAL_IMPORT_WINDOW_HOURS})
 )`;
 
-/** Colonnes du produit plus sa fiche technique, en une seule requete. */
+/**
+ * Colonnes du produit plus sa fiche technique, en une seule requete.
+ * price et compare_at_price sont les prix effectifs : promotion datee comprise.
+ */
 const productColumns = sql`
   p.id, p.slug, p.name, p.brand, p.category, p.headline, p.description,
-  p.price, p.compare_at_price, p.stock, p.low_stock_threshold,
+  ${effectivePriceSql} AS price, ${effectiveCompareAtSql} AS compare_at_price,
+  p.price AS regular_price, p.compare_at_price AS regular_compare_at_price,
+  p.promo_price, p.promo_starts_at, p.promo_ends_at, ${promoActiveSql} AS promo_active,
+  p.stock, p.low_stock_threshold,
   p.image, p.featured, p.is_hero, p.published, p.created_at,
   ${isNewSql} AS is_new,
   COALESCE(
@@ -155,8 +162,8 @@ async function getProductsUncached(query: ProductQuery = {}): Promise<Product[]>
           : sql``
       }
     ORDER BY
-      ${query.sort === "prix-croissant" ? sql`p.price ASC` : sql``}
-      ${query.sort === "prix-decroissant" ? sql`p.price DESC` : sql``}
+      ${query.sort === "prix-croissant" ? sql`${effectivePriceSql} ASC` : sql``}
+      ${query.sort === "prix-decroissant" ? sql`${effectivePriceSql} DESC` : sql``}
       ${query.sort === "nouveautes" ? sql`p.created_at DESC` : sql``}
       ${
         query.sort === "prix-croissant" || query.sort === "prix-decroissant" || query.sort === "nouveautes"
@@ -225,15 +232,18 @@ export const getNewProducts = catalogCache<[limit?: number], Product[]>(
 );
 
 /**
- * Promotion mise en avant : la plus forte reduction parmi les produits en
- * vente et en stock. A reduction egale, la plus recente.
+ * Promotion mise en avant : une promotion datee en cours d'abord (elle a un
+ * compte a rebours), puis la plus forte reduction parmi les produits en vente
+ * et en stock. A reduction egale, la plus recente.
  */
 async function getTopPromoProductUncached(): Promise<Product | undefined> {
   const [row] = await catalogRead(sql<ProductRow[]>`
     SELECT ${productColumns}
     FROM products p
-    WHERE p.published = TRUE AND p.stock > 0 AND p.compare_at_price > p.price
-    ORDER BY (p.compare_at_price - p.price)::float8 / p.compare_at_price DESC, p.created_at DESC
+    WHERE p.published = TRUE AND p.stock > 0 AND ${effectiveCompareAtSql} > ${effectivePriceSql}
+    ORDER BY ${promoActiveSql} DESC,
+             (${effectiveCompareAtSql} - ${effectivePriceSql})::float8 / ${effectiveCompareAtSql} DESC,
+             p.created_at DESC
     LIMIT 1
   `);
   return row ? toProduct(row) : undefined;
