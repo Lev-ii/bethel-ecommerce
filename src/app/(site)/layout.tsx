@@ -3,14 +3,20 @@ import { currentUser } from "@/lib/auth/current";
 import { Footer } from "@/components/layout/Footer";
 import { MiniCartDrawer } from "@/components/cart/MiniCartDrawer";
 import { AnnouncementBar } from "@/components/layout/AnnouncementBar";
-import { getCategories } from "@/lib/repository";
+import { ArrivalCard } from "@/components/product/ArrivalCard";
+import { getCategories, getNewProducts, getTopPromoProduct } from "@/lib/repository";
 
 export default async function SiteLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const [user, categories] = await Promise.all([currentUser(), getCategories()]);
+  const [user, categories, [arrival], promo] = await Promise.all([
+    currentUser(),
+    getCategories(),
+    getNewProducts(1),
+    getTopPromoProduct(),
+  ]);
 
   return (
     <div className="flex min-h-dvh flex-col">
@@ -27,6 +33,7 @@ export default async function SiteLayout({
         {children}
       </main>
       <Footer isAdmin={user?.role === "ADMIN"} categories={categories} />
+      <ArrivalCard arrival={arrival} promo={promo} />
     </div>
   );
 }

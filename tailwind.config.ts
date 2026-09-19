@@ -69,9 +69,27 @@ const config: Config = {
           from: { opacity: "0", transform: "translateY(8px)" },
           to: { opacity: "1", transform: "translateY(0)" },
         },
+        // Carte d'arrivee : monte depuis le bas avec un leger rebond.
+        "card-in": {
+          "0%": { opacity: "0", transform: "translateY(28px) scale(0.96)" },
+          "70%": { opacity: "1", transform: "translateY(-4px) scale(1.005)" },
+          "100%": { opacity: "1", transform: "translateY(0) scale(1)" },
+        },
+        "card-out": {
+          from: { opacity: "1", transform: "translateY(0)" },
+          to: { opacity: "0", transform: "translateY(16px)" },
+        },
+        // Reflet qui traverse la pastille une fois la carte posee.
+        shine: {
+          from: { transform: "translateX(-120%)" },
+          to: { transform: "translateX(220%)" },
+        },
       },
       animation: {
         "rise-in": "rise-in 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both",
+        "card-in": "card-in 620ms cubic-bezier(0.16, 1, 0.3, 1) both",
+        "card-out": "card-out 220ms ease-in both",
+        shine: "shine 900ms ease-out 700ms both",
       },
     },
   },
