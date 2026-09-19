@@ -11,6 +11,7 @@ import {
   getCategories,
   getFeaturedProducts,
   getHeroProduct,
+  getNewProducts,
   getProducts,
 } from "@/lib/repository";
 import { GearImage } from "@/components/product/GearImage";
@@ -28,11 +29,12 @@ const CATEGORY_ACCENTS: Record<string, string> = {
 const FALLBACK_ACCENT = "255 194 122";
 
 export default async function AccueilPage() {
-  const [featured, categories, all, hero] = await Promise.all([
+  const [featured, categories, all, hero, arrivals] = await Promise.all([
     getFeaturedProducts(4),
     getCategories(),
     getProducts(),
     getHeroProduct(),
+    getNewProducts(4),
   ]);
   const promos = all.filter((p) => p.compareAtPrice).slice(0, 4);
 
@@ -190,6 +192,26 @@ export default async function AccueilPage() {
           ))}
         </div>
       </section>
+
+      {/* Nouveautes : seulement s'il y a eu des ajouts recents. */}
+      {arrivals.length > 0 ? (
+        <section className="shell pb-14" aria-labelledby="nouveautes">
+          <SectionHeading
+            id="nouveautes"
+            eyebrow="Vient d'arriver"
+            title="Nouveautés"
+            action={
+              <Link
+                href="/boutique?tri=nouveautes"
+                className="text-sm font-semibold underline underline-offset-4"
+              >
+                Toutes les nouveautés
+              </Link>
+            }
+          />
+          <ProductGrid products={arrivals} layout="rangee" />
+        </section>
+      ) : null}
 
       {/* Selection */}
       <section className="shell pb-14">

@@ -45,6 +45,10 @@ export interface Product {
   published: boolean;
   /** Avis publies : moyenne sur 5 et nombre. Absent tant qu'aucun avis n'est publie. */
   rating?: { average: number; count: number };
+  /** Date d'ajout au catalogue (ISO). Absente du catalogue de secours. */
+  createdAt?: string;
+  /** Badge « Nouveau » (voir lib/shop/novelty.ts). */
+  isNew?: boolean;
 }
 
 export type StockState = "in" | "low" | "out";

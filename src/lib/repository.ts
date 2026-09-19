@@ -17,6 +17,7 @@ import {
 import { toOrder, toProduct, toUser, type OrderRow, type ProductRow, type UserRow } from "@/lib/db/rows";
 import { ORDER_PAGE_SIZE, escapeLike, type OrderFilters } from "@/lib/admin/order-filters";
 import type { DashboardRange } from "@/lib/admin/dashboard-range";
+import { INITIAL_IMPORT_WINDOW_HOURS, NEW_PRODUCT_DAYS } from "@/lib/shop/novelty";
 import type { Category, CategorySlug, Order, OrderStatus, Product, User } from "@/lib/types";
 
 /**
@@ -40,11 +41,18 @@ import type { Category, CategorySlug, Order, OrderStatus, Product, User } from "
  */
 const CATALOG_REVALIDATE_SECONDS = 30;
 
+/** Nouveaute : ajoute recemment, et pas lors de l'import initial (voir shop/novelty.ts). */
+const isNewSql = sql`(
+  p.created_at > now() - make_interval(days => ${NEW_PRODUCT_DAYS})
+  AND p.created_at > (SELECT min(created_at) FROM products) + make_interval(hours => ${INITIAL_IMPORT_WINDOW_HOURS})
+)`;
+
 /** Colonnes du produit plus sa fiche technique, en une seule requete. */
 const productColumns = sql`
   p.id, p.slug, p.name, p.brand, p.category, p.headline, p.description,
   p.price, p.compare_at_price, p.stock, p.low_stock_threshold,
-  p.image, p.featured, p.is_hero, p.published,
+  p.image, p.featured, p.is_hero, p.published, p.created_at,
+  ${isNewSql} AS is_new,
   COALESCE(
     (SELECT json_agg(i.url ORDER BY i.position, i.id)
      FROM product_images i WHERE i.product_id = p.id),
@@ -127,7 +135,7 @@ export const getCategory = catalogCache(
 export interface ProductQuery {
   category?: CategorySlug;
   search?: string;
-  sort?: "recent" | "prix-croissant" | "prix-decroissant";
+  sort?: "recent" | "nouveautes" | "prix-croissant" | "prix-decroissant";
   inStockOnly?: boolean;
 }
 
@@ -148,8 +156,9 @@ async function getProductsUncached(query: ProductQuery = {}): Promise<Product[]>
     ORDER BY
       ${query.sort === "prix-croissant" ? sql`p.price ASC` : sql``}
       ${query.sort === "prix-decroissant" ? sql`p.price DESC` : sql``}
+      ${query.sort === "nouveautes" ? sql`p.created_at DESC` : sql``}
       ${
-        query.sort === "prix-croissant" || query.sort === "prix-decroissant"
+        query.sort === "prix-croissant" || query.sort === "prix-decroissant" || query.sort === "nouveautes"
           ? sql``
           : sql`p.created_at ASC`
       }
@@ -191,6 +200,26 @@ export const getFeaturedProducts = catalogCache(
   getFeaturedProductsUncached,
   getFallbackFeaturedProducts,
   "products:featured",
+  ["products"]
+);
+
+/** Nouveautes, de la plus recente a la plus ancienne. */
+async function getNewProductsUncached(limit = 4): Promise<Product[]> {
+  const rows = await catalogRead(sql<ProductRow[]>`
+    SELECT ${productColumns}
+    FROM products p
+    WHERE p.published = TRUE
+      AND ${isNewSql}
+    ORDER BY p.created_at DESC
+    LIMIT ${limit}
+  `);
+  return rows.map(toProduct);
+}
+// Le catalogue de secours n'a pas de date d'ajout : pas de nouveautes.
+export const getNewProducts = catalogCache<[limit?: number], Product[]>(
+  getNewProductsUncached,
+  () => [],
+  "products:new",
   ["products"]
 );
 

@@ -5,6 +5,7 @@ import type { Product } from "@/lib/types";
 import { GearImage } from "@/components/product/GearImage";
 import { ReviewStars } from "@/components/product/ReviewStars";
 import { AddToCartCard } from "@/components/product/AddToCartCard";
+import { NewBadge } from "@/components/product/NewBadge";
 
 export function ProductCard({ product }: { product: Product }) {
   const out = stockState(product) === "out";
@@ -20,6 +21,7 @@ export function ProductCard({ product }: { product: Product }) {
             className="h-full w-full"
             imageClassName="transition-transform duration-300 group-hover:scale-[1.06]"
           />
+          {product.isNew ? <NewBadge className="absolute left-3 top-3" /> : null}
         </div>
         <div className="flex flex-1 flex-col gap-2 p-4">
           <p className="eyebrow">{product.brand}</p>

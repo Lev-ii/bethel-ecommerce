@@ -30,6 +30,8 @@ export interface ProductRow {
   specs?: Array<{ label: string; value: string }> | null;
   review_average?: number | null;
   review_count?: number | null;
+  created_at?: Date | null;
+  is_new?: boolean | null;
 }
 
 export function toProduct(row: ProductRow): Product {
@@ -56,6 +58,8 @@ export function toProduct(row: ProductRow): Product {
       row.review_count && row.review_average !== null && row.review_average !== undefined
         ? { average: Number(row.review_average), count: Number(row.review_count) }
         : undefined,
+    createdAt: row.created_at ? row.created_at.toISOString() : undefined,
+    isNew: row.is_new === true,
   };
 }
 
