@@ -32,8 +32,16 @@ const host = new URL(url).hostname;
 const local = host === "localhost" || host === "127.0.0.1";
 const sql = postgres(url, { ssl: local ? false : "require", prepare: false, max: 1, onnotice: () => {} });
 try {
-  const plan = await runMigrations(sql, { dir: path.join(process.cwd(), "db", "migrations") });
+  // La base de staging est partagee par toutes les preversions : une branche
+  // plus avancee a pu y poser des migrations que celle-ci n'a pas encore.
+  const plan = await runMigrations(sql, { dir: path.join(process.cwd(), "db", "migrations"), allowNewerApplied: true });
   console.log(`[migrations preversion] appliquees : ${plan.ran.join(", ") || "aucune"}`);
+  if (plan.ahead.length > 0) {
+    console.warn(
+      `[migrations preversion] attention : la base de staging a deja ${plan.ahead.join(", ")}, ` +
+        "posee(s) par une branche plus recente. Cette preversion tourne sur un schema en avance."
+    );
+  }
 } catch (error) {
   console.error(error instanceof MigrationError ? `[migrations preversion] arret : ${error.message}` : error);
   process.exitCode = 1;

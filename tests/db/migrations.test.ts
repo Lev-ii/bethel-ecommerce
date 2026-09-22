@@ -54,7 +54,7 @@ describe("application", () => {
       "0001_a.sql": "CREATE TABLE {t}_a (id int);",
       "0002_b.sql": "CREATE TABLE {t}_b (a_id int);",
     });
-    expect(await m.run()).toEqual({ alreadyApplied: [], baselined: [], ran: ["0001", "0002"] });
+    expect(await m.run()).toEqual({ alreadyApplied: [], baselined: [], ran: ["0001", "0002"], ahead: [] });
     expect(await m.history()).toEqual([
       { version: "0001", baselined: false },
       { version: "0002", baselined: false },
@@ -65,7 +65,7 @@ describe("application", () => {
   it("ne rejoue rien au second lancement", async () => {
     const m = setup({ "0001_a.sql": "CREATE TABLE {t}_a (id int);" });
     await m.run();
-    expect(await m.run()).toEqual({ alreadyApplied: ["0001"], baselined: [], ran: [] });
+    expect(await m.run()).toEqual({ alreadyApplied: ["0001"], baselined: [], ran: [], ahead: [] });
   });
 
   it("n'applique que la nouvelle migration ajoutee ensuite", async () => {
@@ -106,6 +106,36 @@ describe("protections", () => {
     await expect(m.run()).rejects.toThrow(/anterieure a la derniere appliquee/);
   });
 
+  it("refuse une migration appliquee dont le fichier manque", async () => {
+    const m = setup({ "0001_a.sql": "SELECT 1;", "0002_b.sql": "SELECT 1;" });
+    await m.run();
+    fs.rmSync(path.join(m.dir, "0002_b.sql"));
+    await expect(m.run()).rejects.toThrow(/0002 est inscrite comme appliquee, mais son fichier a disparu/);
+  });
+
+  it("preversion : tolere une base en avance sur la branche (base de staging partagee)", async () => {
+    // Une branche plus recente a pose 0002 et 0003 ; celle-ci n'a que 0001.
+    const m = setup({ "0001_a.sql": "SELECT 1;", "0002_b.sql": "SELECT 1;", "0003_c.sql": "SELECT 1;" });
+    await m.run();
+    fs.rmSync(path.join(m.dir, "0002_b.sql"));
+    fs.rmSync(path.join(m.dir, "0003_c.sql"));
+    expect(await m.run({ allowNewerApplied: true })).toEqual({
+      alreadyApplied: ["0001"],
+      baselined: [],
+      ran: [],
+      ahead: ["0002", "0003"],
+    });
+    // L'historique n'est pas touche.
+    expect((await m.history()).map((r) => r.version)).toEqual(["0001", "0002", "0003"]);
+  });
+
+  it("preversion : refuse toujours un trou au milieu de l'historique", async () => {
+    const m = setup({ "0001_a.sql": "SELECT 1;", "0002_b.sql": "SELECT 1;", "0003_c.sql": "SELECT 1;" });
+    await m.run();
+    fs.rmSync(path.join(m.dir, "0002_b.sql"));
+    await expect(m.run({ allowNewerApplied: true })).rejects.toThrow(/0002 est inscrite comme appliquee/);
+  });
+
   it("refuse d'executer quoi que ce soit sur une base existante sans historique", async () => {
     const m = setup({ "0001_initial.sql": "CREATE TABLE {t}_existante (id int);" });
     await sql.unsafe(`CREATE TABLE mig_t${m.n}_existante (id int)`);
@@ -125,6 +155,7 @@ describe("protections", () => {
       alreadyApplied: [],
       baselined: ["0001"],
       ran: ["0002"],
+      ahead: [],
     });
     expect(await m.history()).toEqual([
       { version: "0001", baselined: true },
@@ -160,7 +191,7 @@ $$;`,
 describe("simulation", () => {
   it("donne le plan sans rien ecrire", async () => {
     const m = setup({ "0001_a.sql": "CREATE TABLE {t}_a (id int);" });
-    expect(await m.run({ dryRun: true })).toEqual({ alreadyApplied: [], baselined: [], ran: ["0001"] });
+    expect(await m.run({ dryRun: true })).toEqual({ alreadyApplied: [], baselined: [], ran: ["0001"], ahead: [] });
     expect(await m.exists("a")).toBe(false);
     const [row] = await sql`SELECT to_regclass(${`public.${m.table}`}) IS NOT NULL AS exists`;
     expect(row.exists).toBe(false);
