@@ -29,6 +29,8 @@ const serverEnv: Record<string, string> = {
   AUTH_SECRET: E2E_AUTH_SECRET,
   CRON_SECRET: E2E_CRON_SECRET,
   JEKO_API_BASE: `http://127.0.0.1:${JEKO_PORT}`,
+  // Build de production : autorise explicitement le faux Jeko (voir jekoApiBase).
+  BETHEL_E2E: "1",
   JEKO_API_KEY: "cle-e2e",
   JEKO_API_KEY_ID: "id-e2e",
   JEKO_STORE_ID: "boutique-e2e",
