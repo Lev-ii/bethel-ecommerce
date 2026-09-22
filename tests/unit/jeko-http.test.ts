@@ -120,6 +120,23 @@ describe("jekoApiBase", () => {
     expect(jekoApiBase({ JEKO_API_BASE: "http://localhost:3101" })).toBe("http://localhost:3101");
   });
 
+  it("refuse toute substitution en production, quel que soit l'hébergeur", () => {
+    expect(() => jekoApiBase({ JEKO_API_BASE: "http://127.0.0.1:3101", NODE_ENV: "production" })).toThrow(
+      /refusé en production/
+    );
+    // Seulement si elle est demandee : sans substitution, la vraie API.
+    expect(jekoApiBase({ NODE_ENV: "production" })).toBe("https://api.jeko.africa");
+  });
+
+  it("l'accepte en production pour les tests de parcours qui le déclarent", () => {
+    expect(jekoApiBase({ JEKO_API_BASE: "http://127.0.0.1:3101", NODE_ENV: "production", BETHEL_E2E: "1" })).toBe(
+      "http://127.0.0.1:3101"
+    );
+    expect(() =>
+      jekoApiBase({ JEKO_API_BASE: "http://127.0.0.1:3101", NODE_ENV: "production", BETHEL_E2E: "oui" })
+    ).toThrow(/refusé en production/);
+  });
+
   it.each(["production", "preview", "development"])("refuse toute substitution sur Vercel (%s)", (VERCEL_ENV) => {
     expect(() => jekoApiBase({ JEKO_API_BASE: "http://127.0.0.1:3101", VERCEL_ENV })).toThrow(/refusé sur Vercel/);
   });
