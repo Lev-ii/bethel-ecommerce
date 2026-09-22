@@ -12,7 +12,8 @@ export type AuthErrorReason =
   | "existe"
   | "nom"
   | "service"
-  | "bloque";
+  | "bloque"
+  | "session";
 
 export const authErrorMessages: Record<AuthErrorReason, string> = {
   identifiants: "Email ou mot de passe incorrect.",
@@ -24,6 +25,7 @@ export const authErrorMessages: Record<AuthErrorReason, string> = {
   nom: "Indiquez votre nom complet.",
   service: "Service momentanément indisponible. Réessayez dans un instant.",
   bloque: "Trop de tentatives de connexion. Réessayez dans 15 minutes.",
+  session: "Votre session a expiré ou a été fermée. Reconnectez-vous.",
 };
 
 export function authErrorMessage(reason?: string): string | undefined {

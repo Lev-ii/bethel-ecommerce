@@ -19,24 +19,58 @@ import type { SessionUser, UserRole } from "@/lib/types";
  * cache() : une seule lecture par requete, meme si la mise en page et la page
  * l'appellent chacune.
  */
-export const currentUser = cache(async (): Promise<SessionUser | null> => {
+type SessionCheck =
+  | { user: SessionUser }
+  | {
+      user: null;
+      /**
+       * absente : pas de cookie valide ;
+       * refusee : cookie signe mais refuse en base (mot de passe ou role
+       *   change, compte absent de cette base) ;
+       * indisponible : base injoignable, impossible de trancher.
+       */
+      reason: "absente" | "refusee" | "indisponible";
+    };
+
+const checkSession = cache(async (): Promise<SessionCheck> => {
   const store = await cookies();
   const claims = await readClaims(store.get(SESSION_COOKIE)?.value);
-  if (!claims) return null;
+  if (!claims) return { user: null, reason: "absente" };
 
   try {
     const [account] = await sql<Array<{ session_version: number; role: UserRole }>>`
       SELECT session_version, role FROM users WHERE id = ${claims.user.id}
     `;
-    if (!account) return null;
-    if (account.session_version !== claims.sessionVersion) return null;
-    if (account.role !== claims.user.role) return null;
+    if (!account) return { user: null, reason: "refusee" };
+    if (account.session_version !== claims.sessionVersion) return { user: null, reason: "refusee" };
+    if (account.role !== claims.user.role) return { user: null, reason: "refusee" };
   } catch (error) {
     console.error("[auth] vérification de la session impossible", error);
-    return null;
+    return { user: null, reason: "indisponible" };
   }
-  return claims.user;
+  return { user: claims.user };
 });
+
+export const currentUser = cache(async (): Promise<SessionUser | null> => (await checkSession()).user);
+
+/**
+ * Renvoie vers la connexion, sans boucle.
+ *
+ * Le middleware ne verifie que la signature du cookie : pour lui, un cookie
+ * refuse en base est encore une session, et il renvoie /connexion vers
+ * l'espace reserve. Rediriger simplement vers /connexion faisait donc
+ * tourner le navigateur entre les deux pages (incident du 22-09). Un cookie
+ * refuse passe par /session-expiree, qui l'efface avant la connexion.
+ */
+function denyAccess(check: SessionCheck, suite: string): never {
+  const next = encodeURIComponent(suite);
+  if (!check.user && check.reason === "refusee") redirect(`/session-expiree?suite=${next}`);
+  // Base injoignable : page d'erreur plutot qu'une deconnexion ou une boucle.
+  if (!check.user && check.reason === "indisponible") {
+    throw new Error("Vérification de la session impossible : base injoignable.");
+  }
+  redirect(`/connexion?suite=${next}`);
+}
 
 /**
  * Exige une session administrateur.
@@ -46,20 +80,16 @@ export const currentUser = cache(async (): Promise<SessionUser | null> => {
  * serveur, qui peuvent etre appelees directement.
  */
 export async function requireAdmin(): Promise<SessionUser> {
-  const user = await currentUser();
-  if (!user || user.role !== "ADMIN") {
-    redirect("/connexion?suite=/admin");
-  }
-  return user;
+  const check = await checkSession();
+  if (check.user?.role === "ADMIN") return check.user;
+  denyAccess(check, "/admin");
 }
 
 /** Exige une session, quel que soit le role. */
 export async function requireUser(suite = "/compte"): Promise<SessionUser> {
-  const user = await currentUser();
-  if (!user) {
-    redirect(`/connexion?suite=${encodeURIComponent(suite)}`);
-  }
-  return user;
+  const check = await checkSession();
+  if (check.user) return check.user;
+  denyAccess(check, suite);
 }
 
 /** Variante pour les actions serveur : leve au lieu de rediriger. */
