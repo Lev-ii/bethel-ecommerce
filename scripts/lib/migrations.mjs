@@ -73,10 +73,22 @@ export function readMigrations(dir) {
  * @param options.legacyTable table dont la presence signale une base deja
  *                            structuree (defaut orders) ; null pour ignorer
  * @param options.dryRun      calcule le plan sans rien ecrire
- * @returns { alreadyApplied, baselined, ran } — listes de versions
+ * @param options.allowNewerApplied tolere des migrations appliquees absentes
+ *                            du dossier si elles sont TOUTES plus recentes que
+ *                            le dernier fichier : base partagee (staging) deja
+ *                            migree par une branche plus avancee. Reserve aux
+ *                            preversions ; ailleurs, c'est une erreur.
+ * @returns { alreadyApplied, baselined, ran, ahead } — listes de versions
  */
 export async function runMigrations(sql, options) {
-  const { dir, table = "schema_migrations", baseline, legacyTable = "orders", dryRun = false } = options;
+  const {
+    dir,
+    table = "schema_migrations",
+    baseline,
+    legacyTable = "orders",
+    dryRun = false,
+    allowNewerApplied = false,
+  } = options;
   if (!IDENT.test(table)) throw new MigrationError(`Nom de table d'historique invalide : ${table}`);
   const files = readMigrations(dir);
 
@@ -93,8 +105,16 @@ export async function runMigrations(sql, options) {
         )
       `);
 
-      const applied = await tx.unsafe(`SELECT version, checksum FROM ${table} ORDER BY version`);
+      const allApplied = await tx.unsafe(`SELECT version, checksum FROM ${table} ORDER BY version`);
       const byVersion = new Map(files.map((f) => [f.version, f]));
+      const lastFile = files.at(-1)?.version;
+      // Base en avance sur cette branche : migrations posees par une branche
+      // plus recente. Tolere seulement au-dela du dernier fichier, jamais un
+      // trou au milieu de l'historique.
+      const ahead = allApplied.filter(
+        (row) => allowNewerApplied && !byVersion.has(row.version) && (!lastFile || row.version > lastFile)
+      );
+      const applied = allApplied.filter((row) => !ahead.includes(row));
       for (const row of applied) {
         const file = byVersion.get(row.version);
         if (!file) {
@@ -142,6 +162,7 @@ export async function runMigrations(sql, options) {
         alreadyApplied: applied.map((r) => r.version),
         baselined: baselined.map((f) => f.version),
         ran: pending.map((f) => f.version),
+        ahead: ahead.map((r) => r.version),
       };
       if (dryRun) throw new DryRun(plan);
 
