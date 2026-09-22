@@ -60,7 +60,7 @@ test("l'avancement apparaît sans recharger la page, avec un son, puis un remerc
   });
 
   await page.goto(`/suivi?ref=${REF}`);
-  await expect(page.getByText("Suivi en direct : cette page se met à jour toute seule.")).toBeVisible();
+  await expect(page.getByText("Suivi de la commande", { exact: true })).toBeVisible();
   const loaded = page.url();
 
   // Le son se deverrouille par un geste. Chromium sans interface l'autorise
@@ -82,7 +82,10 @@ test("l'avancement apparaît sans recharger la page, avec un son, puis un remerc
   await page.clock.fastForward(POLL_MS + 500);
   await expect(page.getByRole("status")).toHaveText("Votre commande a été livrée. Merci !");
   await expect(page.getByText("Merci pour votre confiance !")).toBeVisible();
-  await expect(page.getByText("Suivi en direct")).toHaveCount(0);
+  // Numero cliquable (une balise <link> a cet endroit faisait planter la page).
+  const thanks = page.locator("div", { has: page.getByText("Merci pour votre confiance !") }).last();
+  await expect(thanks.getByRole("link", { name: "+225 07 78 84 84 74" })).toHaveAttribute("href", "tel:+2250778848474");
+  await expect(page.getByText("Suivi de la commande", { exact: true })).toHaveCount(0);
 
   const callsAfterDelivery = statusCalls.length;
   await page.clock.fastForward(POLL_MS * 4);

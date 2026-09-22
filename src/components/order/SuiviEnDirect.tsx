@@ -106,7 +106,7 @@ export function SuiviEnDirect({
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-ok opacity-60 motion-reduce:hidden" />
               <span className="relative inline-flex h-2 w-2 rounded-full bg-ok" />
             </span>
-            Suivi en direct : cette page se met à jour toute seule.
+            Suivi de la commande
           </p>
           {soundOn ? (
             <span className="inline-flex items-center gap-1.5 text-fg-3">
@@ -151,8 +151,11 @@ export function SuiviEnDirect({
             {deliveryMode === "retrait"
               ? "Votre commande a bien été retirée en boutique."
               : "Votre commande vous a bien été livrée."}{" "}
-            Nous espérons que ce matériel vous aidera à créer. Une question, un souci ? Appelez-nous au +225 07 78 84 84
-            74, nous sommes là.
+            Nous espérons que ce matériel vous aidera à créer. Une question, un souci ? Appelez-nous au{" "}
+            <a href="tel:+2250778848474" className="font-semibold underline underline-offset-2">
+              +225 07 78 84 84 74
+            </a>
+            , nous sommes là.
           </p>
           <Link href="/boutique" className="btn-primary mt-4 inline-flex">
             Continuer mes achats
