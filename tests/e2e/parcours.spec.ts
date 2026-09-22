@@ -197,3 +197,36 @@ test("client qui ferme la page en plein paiement : réservation libérée après
   expect((await lastOrderOf(customer)).status).toBe("annulee");
   expect(await stockOf(product.id)).toBe(product.stock);
 });
+
+test("paiement au retrait : confirmation directe, sans passer par un panier vide", async ({ page }) => {
+  const product = await pickProduct();
+  const customer = `E2E retrait ${Date.now()}`;
+
+  await addToCart(page, product);
+  await page.goto("/commande");
+  await page.getByRole("button", { name: /Retrait en boutique/ }).click();
+  await page.getByLabel("Nom complet").fill(customer);
+  await page.getByLabel("Téléphone").fill("+225 07 07 07 07 09");
+  await page.getByRole("button", { name: /Espèces au retrait/ }).click();
+
+  // Guette l'ecran « panier vide » pendant toute la navigation (client) vers
+  // la confirmation : il s'affichait un instant avant la correction.
+  await page.evaluate(() => {
+    const w = window as unknown as { sawEmptyCart: boolean };
+    w.sawEmptyCart = false;
+    new MutationObserver(() => {
+      if (document.body.innerText.includes("Il n'y a rien à commander")) w.sawEmptyCart = true;
+    }).observe(document.body, { childList: true, subtree: true, characterData: true });
+  });
+  await page.getByRole("button", { name: "Confirmer la commande" }).click();
+
+  await expect(page).toHaveURL(/\/commande\/confirmation\?ref=BTH-/);
+  await expect(page.getByRole("heading", { name: "Commande enregistrée" })).toBeVisible();
+  expect(await page.evaluate(() => (window as unknown as { sawEmptyCart: boolean }).sawEmptyCart)).toBe(false);
+
+  expect((await lastOrderOf(customer)).status).toBe("recue");
+  // Le panier est vide par la page de confirmation.
+  await expect
+    .poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("bethel-panier") ?? "{}")?.state?.items?.length ?? 0))
+    .toBe(0);
+});

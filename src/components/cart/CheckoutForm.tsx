@@ -49,7 +49,6 @@ export function CheckoutForm({
   const router = useRouter();
   const items = useCart((s) => s.items);
   const ready = useCart((s) => s.ready);
-  const clear = useCart((s) => s.clear);
   const updatePrices = useCart((s) => s.updatePrices);
   const subtotal = useCartTotal();
 
@@ -209,7 +208,9 @@ export function CheckoutForm({
       return;
     }
 
-    clear();
+    // Pas de clear() ici : vide avant la navigation, le formulaire se
+    // reaffichait un instant sur « panier vide ». La page de confirmation
+    // vide le panier (ClearCartOnMount), comme pour le paiement en ligne.
     router.push(
       `/commande/confirmation?ref=${result.reference}${result.accessToken ? `&t=${result.accessToken}` : ""}&total=${result.total}&mode=${mode}${
         result.paymentPending ? "&paiement=attente" : ""
